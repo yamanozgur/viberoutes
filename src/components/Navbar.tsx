@@ -55,7 +55,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <img
             src="https://github.com/yamanozgur/viberoutes/blob/7542c7d5659e5c93056b3db3537e137c76a65f44/Asset/vr.png?raw=true"
             alt="Vibe Routes Logo"
-            className="h-10 sm:h-12 w-auto object-contain hover:opacity-90 transition-opacity"
+            className="h-12 sm:h-14 md:h-16 w-auto object-contain hover:opacity-90 transition-all"
             referrerPolicy="no-referrer"
           />
         </button>
