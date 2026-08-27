@@ -1,0 +1,6 @@
+{
+  "name": "Vibe Routes",
+  "description": "Editorial travel & lifestyle platform for cultured travelers featuring boutique hotel guides, curated top lists, slow journeys, and digital magazine editions.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
