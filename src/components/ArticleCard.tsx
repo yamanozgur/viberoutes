@@ -44,31 +44,31 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
 
         <div className="md:col-span-8 flex flex-col justify-between space-y-3">
           <div>
-            <div className="flex items-center justify-between text-xs text-[#767064] font-ui uppercase tracking-wider mb-2">
-              <span className="text-[#8C827A] font-medium">{article.region}</span>
+            <div className="flex items-center justify-between text-xs text-[#524B43] font-ui uppercase tracking-wider mb-2 font-medium">
+              <span className="text-[#3D3730] font-semibold">{article.region}</span>
               <span className="flex items-center space-x-1">
-                <Clock className="w-3 h-3 text-[#767064]" />
+                <Clock className="w-3.5 h-3.5 text-[#524B43]" />
                 <span>{article.readTime}</span>
               </span>
             </div>
 
-            <h3 className="font-display text-xl sm:text-2xl font-light text-[#1A1814] group-hover:text-[#9E7B54] transition-colors leading-snug">
+            <h3 className="font-display text-xl sm:text-2xl lg:text-[1.7rem] font-semibold text-[#14120E] group-hover:text-[#9E7B54] transition-colors leading-snug">
               {article.title}
             </h3>
 
             {article.subtitle && (
-              <p className="font-display text-sm italic text-[#9E7B54] font-light mt-1">
+              <p className="font-display text-base italic text-[#84633E] font-medium mt-1">
                 {article.subtitle}
               </p>
             )}
 
-            <p className="font-ui text-xs sm:text-sm text-[#4A453E] font-light mt-2 line-clamp-2 leading-relaxed">
+            <p className="font-ui text-sm sm:text-base text-[#2C2824] font-normal mt-2.5 line-clamp-3 leading-relaxed">
               {article.excerpt}
             </p>
           </div>
 
           <div className="flex items-center justify-between pt-3 border-t border-[#E5E0D8]">
-            <span className="text-xs text-[#767064] font-ui font-medium">By {article.author.name}</span>
+            <span className="text-xs sm:text-sm text-[#3D3730] font-ui font-semibold">By {article.author.name}</span>
             <div className="flex items-center space-x-2">
               <button
                 onClick={(e) => {
@@ -84,7 +84,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
               >
                 <Bookmark className="w-3.5 h-3.5" />
               </button>
-              <span className="text-xs font-ui uppercase tracking-wider text-[#1A1814] font-semibold flex items-center gap-0.5 group-hover:text-[#9E7B54]">
+              <span className="text-xs sm:text-sm font-ui uppercase tracking-wider text-[#1A1814] font-bold flex items-center gap-0.5 group-hover:text-[#9E7B54]">
                 Read Story <ArrowUpRight className="w-3.5 h-3.5" />
               </span>
             </div>
@@ -126,26 +126,26 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
 
         {/* Text Container */}
         <div className="p-5 sm:p-6 space-y-3">
-          <div className="flex items-center justify-between text-[11px] text-[#767064] font-ui uppercase tracking-widest">
-            <span className="font-semibold text-[#8C827A]">{article.region}</span>
+          <div className="flex items-center justify-between text-xs text-[#524B43] font-ui uppercase tracking-wider font-semibold">
+            <span className="text-[#3D3730]">{article.region}</span>
             <span className="flex items-center space-x-1">
-              <Clock className="w-3 h-3 text-[#767064]" />
+              <Clock className="w-3.5 h-3.5 text-[#524B43]" />
               <span>{article.readTime}</span>
             </span>
           </div>
 
-          <h3 className="font-display text-xl sm:text-2xl font-light text-[#1A1814] leading-snug group-hover:text-[#9E7B54] transition-colors">
+          <h3 className="font-display text-xl sm:text-2xl font-semibold text-[#14120E] leading-snug group-hover:text-[#9E7B54] transition-colors">
             {article.title}
           </h3>
 
-          <p className="font-ui text-xs sm:text-sm text-[#4A453E] font-light line-clamp-3 leading-relaxed">
+          <p className="font-ui text-sm sm:text-base text-[#2C2824] font-normal line-clamp-3 leading-relaxed">
             {article.excerpt}
           </p>
         </div>
       </div>
 
       <div className="p-5 sm:p-6 pt-0 border-t border-[#EFEAE2] mt-4 flex items-center justify-between">
-        <span className="text-xs text-[#767064] font-ui font-medium">By {article.author.name}</span>
+        <span className="text-xs sm:text-sm text-[#3D3730] font-ui font-semibold">By {article.author.name}</span>
         <div className="flex items-center space-x-2">
           <button
             onClick={(e) => {
@@ -161,7 +161,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
           >
             <Bookmark className="w-3.5 h-3.5" />
           </button>
-          <span className="text-xs font-ui uppercase tracking-wider text-[#1A1814] font-semibold flex items-center gap-0.5 group-hover:text-[#9E7B54]">
+          <span className="text-xs sm:text-sm font-ui uppercase tracking-wider text-[#1A1814] font-bold flex items-center gap-0.5 group-hover:text-[#9E7B54]">
             Read <ArrowUpRight className="w-3.5 h-3.5" />
           </span>
         </div>

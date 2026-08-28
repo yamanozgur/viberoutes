@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { ARTICLES_DATA } from './data/articles';
 import { Article, MainCategory, SubCategory, HotelFeature, ListItem, GearItem } from './types';
 import { Navbar } from './components/Navbar';
-import { TrendingTicker } from './components/TrendingTicker';
 import { HeroFeatured } from './components/HeroFeatured';
 import { DestinationsStrip } from './components/DestinationsStrip';
 import { HotelShowcaseSection } from './components/HotelShowcaseSection';
@@ -188,8 +187,6 @@ export default function App() {
         onOpenBookmarks={() => setIsBookmarksOpen(true)}
         savedCount={bookmarkedIds.length}
         onOpenVibeFinder={() => handleSelectCategory('routes')}
-        onOpenAdminPanel={handleOpenAdminPanel}
-        onOpenActionHistory={handleOpenActionHistory}
       />
 
       {/* Main View Router */}
@@ -217,15 +214,6 @@ export default function App() {
         ) : (
           /* Standard Editorial Home / Category View */
           <div>
-            {/* Top Trending Ticker Bar (Condé Nast style) */}
-            {currentCategory === 'all' && (
-              <TrendingTicker
-                onSelectTopic={(topic) => handleSelectCategory('destinations')}
-                onSelectArticle={handleSelectArticle}
-                articles={allArticles}
-              />
-            )}
-
             {/* If home ("all"), render the large hero cover story + top 3 stories */}
             {currentCategory === 'all' && featuredArticle && (
               <HeroFeatured
@@ -372,8 +360,7 @@ export default function App() {
         onSelectCategory={handleSelectCategory}
         onOpenPressModal={() => setIsPressModalOpen(true)}
         onOpenVibeFinder={() => handleSelectCategory('routes')}
-        onOpenAdminPanel={handleOpenAdminPanel}
-        onOpenActionHistory={handleOpenActionHistory}
+        onOpenAdminPanel={() => setIsAdminOpen(true)}
       />
 
       {/* Global Search Modal */}
@@ -407,7 +394,7 @@ export default function App() {
         onClose={() => setIsPressModalOpen(false)}
       />
 
-      {/* Admin Panel Story Publisher & Action History */}
+      {/* Admin Panel Story Publisher */}
       <AdminPanel
         isOpen={isAdminOpen}
         onClose={() => setIsAdminOpen(false)}
@@ -416,7 +403,6 @@ export default function App() {
         onUpdateArticle={handleUpdateArticle}
         onDeleteArticle={handleDeleteArticle}
         onSelectArticle={handleSelectArticle}
-        initialTab={adminInitialTab}
       />
     </div>
   );
