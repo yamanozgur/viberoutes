@@ -1,6 +1,6 @@
 import React from 'react';
 import { HotelFeature } from '../types';
-import { ExternalLink, Sparkles, MapPin, Tag, Compass, ShieldCheck } from 'lucide-react';
+import { ExternalLink, MapPin, Sparkles } from 'lucide-react';
 
 interface HotelFeatureCardProps {
   hotel: HotelFeature;
@@ -14,110 +14,75 @@ export const HotelFeatureCard: React.FC<HotelFeatureCardProps> = ({
   onBookHotel,
 }) => {
   return (
-    <div className="border border-[#E5E0D8] bg-[#FFFFFF] overflow-hidden my-8 hover:border-[#C4BCAD] transition-all shadow-xs">
-      {/* Header with Rank & Location */}
-      <div className="bg-[#F7F5F0] px-6 py-3.5 border-b border-[#E5E0D8] flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center space-x-3">
-          <span className="w-6 h-6 rounded-full bg-[#1A1814] text-[#FAFAF7] flex items-center justify-center font-display text-xs font-semibold">
-            {index + 1}
-          </span>
-          <h3 className="font-display text-2xl font-light text-[#1A1814] tracking-tight">
-            {hotel.name}
-          </h3>
+    <div className="border border-[#E5E0D8] bg-[#FFFFFF] overflow-hidden flex flex-col justify-between hover:border-[#9E7B54]/60 transition-all shadow-xs group">
+      {/* Image with index badge & price */}
+      <div className="relative aspect-[16/10] overflow-hidden bg-[#F4EFEA]">
+        <img
+          src={hotel.imageUrl}
+          alt={hotel.name}
+          referrerPolicy="no-referrer"
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+        />
+        <div className="absolute top-2.5 left-2.5 bg-[#1A1814]/90 text-[#FAFAF7] px-2 py-0.5 text-[11px] font-display font-medium rounded-none">
+          #{index + 1}
         </div>
-        <div className="flex items-center space-x-2 text-xs font-ui text-[#767064]">
-          <MapPin className="w-3.5 h-3.5 text-[#9E7B54]" />
-          <span>{hotel.location}</span>
-          {hotel.rating && (
-            <>
-              <span className="text-[#C4BCAD]">·</span>
-              <span className="text-[#1A1814] font-medium">{hotel.rating}</span>
-            </>
-          )}
-        </div>
+        {hotel.rating && (
+          <div className="absolute top-2.5 right-2.5 bg-[#FFFFFF]/95 text-[#1A1814] px-2 py-0.5 text-[11px] font-ui font-semibold border border-[#E5E0D8] shadow-xs">
+            ★ {hotel.rating}
+          </div>
+        )}
+        {hotel.priceStarting && (
+          <div className="absolute bottom-2.5 right-2.5 bg-[#1A1814]/85 text-[#FAFAF7] px-2.5 py-1 text-[11px] font-ui tracking-wide">
+            {hotel.priceStarting}
+          </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
-        {/* Hotel Image */}
-        <div className="lg:col-span-5 aspect-[4/3] lg:aspect-auto overflow-hidden bg-[#F4EFEA] relative">
-          <img
-            src={hotel.imageUrl}
-            alt={hotel.name}
-            referrerPolicy="no-referrer"
-            className="w-full h-full object-cover transition-opacity"
-          />
-          <div className="absolute top-3 left-3 bg-[#FFFFFF]/95 px-2.5 py-1 text-[10px] font-ui uppercase tracking-widest text-[#1A1814] border border-[#E5E0D8] flex items-center gap-1 shadow-xs">
-            <ShieldCheck className="w-3 h-3 text-[#9E7B54]" />
-            Curated Boutique Stay
+      {/* Hotel Content */}
+      <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3">
+        <div className="space-y-2">
+          <div className="flex items-center space-x-1.5 text-[11px] font-ui text-[#767064]">
+            <MapPin className="w-3 h-3 text-[#9E7B54] shrink-0" />
+            <span className="truncate">{hotel.location}</span>
           </div>
+
+          <h3 className="font-display text-lg font-medium text-[#1A1814] leading-snug group-hover:text-[#9E7B54] transition-colors">
+            {hotel.name}
+          </h3>
+
+          {hotel.formerLife && (
+            <p className="text-xs font-reading italic text-[#9E7B54] line-clamp-1">
+              {hotel.formerLife}
+            </p>
+          )}
+
+          <p className="font-ui text-xs text-[#4A453E] line-clamp-3 leading-relaxed font-light">
+            {hotel.description}
+          </p>
+
+          {hotel.designHighlight && (
+            <div className="bg-[#FAF8F5] p-2 border border-[#EBE6DE] text-[11px] font-ui text-[#1A1814] line-clamp-2 leading-relaxed">
+              <span className="text-[#9E7B54] font-medium inline-flex items-center gap-1 mr-1">
+                <Sparkles className="w-2.5 h-2.5" /> Highlight:
+              </span>
+              {hotel.designHighlight}
+            </div>
+          )}
         </div>
 
-        {/* Content Details following Section 3.4 of Strategy Doc */}
-        <div className="lg:col-span-7 p-6 sm:p-7 flex flex-col justify-between space-y-5">
-          <div className="space-y-4">
-            {/* 1. Former Life (Italicized - Hallmark of the series) */}
-            {hotel.formerLife && (
-              <div className="border-l-2 border-[#9E7B54] pl-3 py-0.5">
-                <span className="text-[11px] font-ui uppercase tracking-wider text-[#767064] block">Former Life</span>
-                <p className="font-display text-base sm:text-lg italic text-[#9E7B54] font-light">
-                  {hotel.formerLife}
-                </p>
-              </div>
-            )}
+        {/* Booking Action */}
+        <div className="pt-3 border-t border-[#EFEBE4] flex items-center justify-between gap-2 mt-auto">
+          <span className="text-[11px] font-ui text-[#767064] uppercase tracking-wider">
+            {hotel.affiliateProvider || 'Booking'}
+          </span>
 
-            {/* 2. Architect / Transformation */}
-            {hotel.architect && (
-              <div className="text-xs font-ui text-[#4A453E] flex items-baseline space-x-2">
-                <span className="text-[#767064] uppercase tracking-wider text-[10px]">Architect / Restoration:</span>
-                <span className="font-medium text-[#1A1814]">{hotel.architect}</span>
-              </div>
-            )}
-
-            {/* 3. Description */}
-            <p className="font-ui text-sm sm:text-[14.5px] text-[#38342D] font-light leading-[1.85]">
-              {hotel.description}
-            </p>
-
-            {/* 4. Design Highlight */}
-            <div className="bg-[#F7F5F0] p-3.5 border border-[#E5E0D8] space-y-1">
-              <span className="text-[10px] font-ui uppercase tracking-widest text-[#9E7B54] flex items-center gap-1 font-medium">
-                <Sparkles className="w-3 h-3 text-[#9E7B54]" />
-                Design Highlight
-              </span>
-              <p className="font-ui text-xs sm:text-[13px] text-[#1A1814] font-light leading-relaxed">
-                {hotel.designHighlight}
-              </p>
-            </div>
-
-            {/* 5. Traveler Tip */}
-            <div className="text-xs font-ui text-[#4A453E] space-y-1">
-              <span className="text-[#767064] uppercase tracking-wider text-[10px] flex items-center gap-1 font-medium">
-                <Compass className="w-3 h-3 text-[#9E7B54]" />
-                Traveler’s Insider Note:
-              </span>
-              <p className="font-light italic text-[#4A453E]">
-                "{hotel.travelerTip}"
-              </p>
-            </div>
-          </div>
-
-          {/* 6. Pricing & Affiliate Booking Button */}
-          <div className="pt-4 border-t border-[#E5E0D8] flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <span className="text-[10px] uppercase tracking-wider text-[#767064] block">From</span>
-              <span className="font-display text-xl font-light text-[#1A1814]">
-                {hotel.priceStarting}
-              </span>
-            </div>
-
-            <button
-              onClick={() => onBookHotel(hotel)}
-              className="inline-flex items-center space-x-2 text-xs uppercase tracking-widest font-ui font-medium text-[#FAFAF7] bg-[#1A1814] hover:bg-[#9E7B54] px-5 py-3 transition-colors cursor-pointer shadow-xs"
-            >
-              <span>Check Rates on {hotel.affiliateProvider}</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </button>
-          </div>
+          <button
+            onClick={() => onBookHotel(hotel)}
+            className="inline-flex items-center space-x-1 text-[11px] uppercase tracking-wider font-ui font-medium text-[#FAFAF7] bg-[#1A1814] hover:bg-[#9E7B54] px-3.5 py-1.5 transition-colors cursor-pointer"
+          >
+            <span>Check Rates</span>
+            <ExternalLink className="w-3 h-3" />
+          </button>
         </div>
       </div>
     </div>

@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import { MainCategory, SubCategory } from '../types';
-import { Mail, Check, ArrowRight, ShieldCheck, Instagram, Youtube, Sparkles } from 'lucide-react';
+import { Mail, Check, ArrowRight, ShieldCheck, Instagram, Youtube, Sparkles, Lock } from 'lucide-react';
 
 interface FooterProps {
   onSelectCategory: (cat: MainCategory | 'all' | 'magazine' | 'routes' | 'videos', subCat?: SubCategory) => void;
   onOpenPressModal: () => void;
   onOpenVibeFinder: () => void;
+  onOpenAdminPanel?: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
   onSelectCategory,
   onOpenPressModal,
   onOpenVibeFinder,
+  onOpenAdminPanel,
 }) => {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
@@ -134,16 +136,38 @@ export const Footer: React.FC<FooterProps> = ({
               <li><button onClick={onOpenPressModal} className="hover:text-[#1A1814] cursor-pointer">Hotel Partnerships</button></li>
               <li><button onClick={onOpenPressModal} className="hover:text-[#1A1814] cursor-pointer">Sponsored Stay Inquiries</button></li>
               <li><button onClick={onOpenPressModal} className="hover:text-[#1A1814] cursor-pointer">Media Kit & Rates</button></li>
-              <li><span className="text-[#767064]">Launch: March 2, 2026</span></li>
+              {onOpenAdminPanel && (
+                <li>
+                  <button 
+                    onClick={onOpenAdminPanel} 
+                    className="flex items-center space-x-1 text-[#9E7B54] hover:text-[#1A1814] font-medium cursor-pointer"
+                  >
+                    <Lock className="w-3 h-3" />
+                    <span>Editorial Login</span>
+                  </button>
+                </li>
+              )}
             </ul>
           </div>
         </div>
 
         {/* Bottom Bar & Legal Affiliate Statement */}
         <div className="pt-8 border-t border-[#D8D2C7] flex flex-col md:flex-row items-center justify-between gap-4 text-[11px] font-ui text-[#767064]">
-          <div className="flex items-center space-x-2">
-            <ShieldCheck className="w-3.5 h-3.5 text-[#9E7B54]" />
-            <span>© 2026 Vibe Routes Platform. All rights reserved.</span>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <div className="flex items-center space-x-2">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#9E7B54]" />
+              <span>© 2026 Vibe Routes Platform. All rights reserved.</span>
+            </div>
+            {onOpenAdminPanel && (
+              <button
+                onClick={onOpenAdminPanel}
+                className="text-[#767064] hover:text-[#1A1814] flex items-center space-x-1 cursor-pointer transition-colors text-[10px]"
+                title="Editor-in-Chief Panel"
+              >
+                <Lock className="w-3 h-3 text-[#9E7B54]" />
+                <span>Editorial Portal</span>
+              </button>
+            )}
           </div>
 
           <p className="text-center md:text-right max-w-xl text-[10px] leading-relaxed">

@@ -115,16 +115,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Right utility buttons */}
         <div className="flex items-center space-x-2 sm:space-x-3">
-          {/* Editorial Login Button in Top Right */}
-          <button
-            onClick={onOpenAdminPanel}
-            className="flex items-center space-x-1.5 px-3.5 py-1.5 bg-[#9E7B54] hover:bg-[#1A1814] text-[#FAF8F5] text-xs font-ui tracking-wider uppercase transition-all cursor-pointer shadow-xs font-semibold"
-            title="Editorial Login & Story Publisher"
-          >
-            <Lock className="w-3.5 h-3.5" />
-            <span>EDITORIAL LOGIN</span>
-          </button>
-
           <button
             onClick={onOpenSearch}
             className="p-2 text-[#4A453E] hover:text-[#1A1814] hover:bg-[#F4EFEA] rounded-none transition-colors cursor-pointer"
@@ -148,20 +138,6 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div className="lg:hidden bg-[#FAFAF7] border-b border-[#E5E0D8] px-6 py-6 space-y-4 max-h-[85vh] overflow-y-auto">
-          <button
-            onClick={() => {
-              onOpenAdminPanel();
-              setMobileMenuOpen(false);
-            }}
-            className="w-full text-left py-2.5 px-3 bg-[#9E7B54] text-[#FAF8F5] flex items-center justify-between font-ui text-sm font-semibold shadow-xs"
-          >
-            <span className="flex items-center gap-2">
-              <Lock className="w-4 h-4" />
-              EDITORIAL LOGIN
-            </span>
-            <span>→</span>
-          </button>
-
           <div className="space-y-4 pt-2">
             {menuStructure.map((item) => (
               <div key={item.id} className="border-b border-[#E5E0D8] pb-3">

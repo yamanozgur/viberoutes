@@ -3,10 +3,9 @@ import ReactMarkdown from 'react-markdown';
 import { Article, HotelFeature, ListItem, GearItem } from '../types';
 import { HotelFeatureCard } from './HotelFeatureCard';
 import { 
-  ArrowLeft, Bookmark, Share2, Clock, Volume2, VolumeX, 
+  ArrowLeft, Bookmark, Share2, Clock, 
   MapPin, Check, ExternalLink, Sparkles, Compass, ShieldCheck, ChevronRight 
 } from 'lucide-react';
-import { ambientAudio } from '../utils/audio';
 
 interface ArticleDetailProps {
   article: Article;
@@ -38,7 +37,6 @@ export const ArticleDetail: React.FC<ArticleDetailProps> = ({
   onOpenBookingModal,
 }) => {
   const [copiedShare, setCopiedShare] = useState(false);
-  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
 
@@ -52,16 +50,6 @@ export const ArticleDetail: React.FC<ArticleDetailProps> = ({
     navigator.clipboard.writeText(window.location.href);
     setCopiedShare(true);
     setTimeout(() => setCopiedShare(false), 2000);
-  };
-
-  const toggleSoundtrack = () => {
-    if (isAudioPlaying) {
-      ambientAudio.stop();
-      setIsAudioPlaying(false);
-    } else {
-      ambientAudio.play(article.ambientSoundtrack?.type || 'rain');
-      setIsAudioPlaying(true);
-    }
   };
 
   const handleNewsletterSubmit = (e: React.FormEvent) => {
@@ -141,25 +129,6 @@ export const ArticleDetail: React.FC<ArticleDetailProps> = ({
               <Clock className="w-3.5 h-3.5" />
               <span>{article.readTime}</span>
             </span>
-
-            {article.ambientSoundtrack && (
-              <button
-                onClick={toggleSoundtrack}
-                className="flex items-center space-x-1.5 px-3 py-1.5 bg-[#FFFFFF] border border-[#E5E0D8] text-[#1A1814] hover:bg-[#1A1814] hover:text-[#FAFAF7] transition-all cursor-pointer shadow-xs"
-              >
-                {isAudioPlaying ? (
-                  <>
-                    <Volume2 className="w-3.5 h-3.5 text-[#9E7B54] animate-pulse" />
-                    <span>Ambience: Playing</span>
-                  </>
-                ) : (
-                  <>
-                    <VolumeX className="w-3.5 h-3.5" />
-                    <span>Atmospheric Audio</span>
-                  </>
-                )}
-              </button>
-            )}
           </div>
         </div>
       </header>
@@ -305,7 +274,7 @@ export const ArticleDetail: React.FC<ArticleDetailProps> = ({
               </p>
             </div>
 
-            <div className="space-y-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               {article.hotelData.map((hotel, hIdx) => (
                 <HotelFeatureCard
                   key={hotel.name}

@@ -302,6 +302,7 @@ export default function App() {
         onSelectCategory={handleSelectCategory}
         onOpenPressModal={() => setIsPressModalOpen(true)}
         onOpenVibeFinder={() => handleSelectCategory('routes')}
+        onOpenAdminPanel={() => setIsAdminOpen(true)}
       />
 
       {/* Global Search Modal */}
