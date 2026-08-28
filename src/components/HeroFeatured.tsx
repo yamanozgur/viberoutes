@@ -124,7 +124,7 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({
           </div>
 
           {/* RIGHT 35%: TOP STORIES TODAY (Condé Nast Vertical Stack) */}
-          <div className="lg:col-span-5 flex flex-col justify-between space-y-4">
+          <div className="lg:col-span-5 flex flex-col space-y-4">
             
             {/* Header */}
             <div className="flex items-center justify-between pb-2.5 border-b-2 border-[#1A1814]">
@@ -140,7 +140,7 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({
             </div>
 
             {/* Vertical Articles Stack */}
-            <div className="flex flex-col space-y-3.5 grow justify-between">
+            <div className="flex flex-col space-y-3">
               {sideArticles.slice(0, 3).map((sideArt, index) => {
                 const sideCatStyle = getCategoryStyles(sideArt.category);
 
