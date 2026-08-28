@@ -172,8 +172,44 @@ export default function App() {
     return art.category === currentCategory;
   });
 
-  const featuredArticle = allArticles.find((a) => a.featured) || allArticles[0];
-  const popularArticles = allArticles.filter((a) => a.isPopular);
+  // Section-specific curation for homepage
+  const featuredArticle =
+    allArticles.find((a) => a.homeSection === 'hero_cover') ||
+    allArticles.find((a) => a.featured) ||
+    allArticles[0];
+
+  const topStoriesArticles = (() => {
+    const explicitlyAssigned = allArticles.filter(
+      (a) => a.homeSection === 'top_stories' && a.id !== featuredArticle?.id
+    );
+    if (explicitlyAssigned.length >= 3) return explicitlyAssigned.slice(0, 3);
+    const fallbacks = allArticles.filter(
+      (a) => a.id !== featuredArticle?.id && !explicitlyAssigned.some((ea) => ea.id === a.id)
+    );
+    return [...explicitlyAssigned, ...fallbacks].slice(0, 3);
+  })();
+
+  const editorsPickArticles = (() => {
+    const explicitlyAssigned = allArticles.filter(
+      (a) => a.homeSection === 'editors_pick' && a.id !== featuredArticle?.id
+    );
+    if (explicitlyAssigned.length > 0) return explicitlyAssigned;
+    return allArticles.filter((a) => a.isEditorPick || a.isPopular);
+  })();
+
+  const latestStoriesArticles = (() => {
+    if (currentCategory !== 'all') {
+      return filteredArticles;
+    }
+    const explicitlyAssigned = allArticles.filter(
+      (a) => a.homeSection === 'latest' && a.id !== featuredArticle?.id
+    );
+    const others = allArticles.filter(
+      (a) => a.id !== featuredArticle?.id && a.homeSection !== 'none' && !explicitlyAssigned.some((ea) => ea.id === a.id)
+    );
+    return [...explicitlyAssigned, ...others].slice(0, 6);
+  })();
+
   const bookmarkedArticles = allArticles.filter((a) => bookmarkedIds.includes(a.id));
 
   return (
@@ -218,7 +254,7 @@ export default function App() {
             {currentCategory === 'all' && featuredArticle && (
               <HeroFeatured
                 article={featuredArticle}
-                sideArticles={allArticles.filter((a) => a.id !== featuredArticle.id)}
+                sideArticles={topStoriesArticles}
                 onSelectArticle={handleSelectArticle}
                 onToggleBookmark={toggleBookmark}
                 isBookmarked={bookmarkedIds.includes(featuredArticle.id)}
@@ -311,7 +347,7 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {filteredArticles.map((art) => (
+                  {latestStoriesArticles.map((art) => (
                     <ArticleCard
                       key={art.id}
                       article={art}
@@ -324,7 +360,7 @@ export default function App() {
               </div>
 
               {/* Popular Stays & Lists Strip */}
-              {currentCategory === 'all' && (
+              {currentCategory === 'all' && editorsPickArticles.length > 0 && (
                 <div className="space-y-6 pt-4">
                   <div className="flex items-center justify-between border-b border-[#E5E0D8] pb-3">
                     <div>
@@ -336,7 +372,7 @@ export default function App() {
                   </div>
 
                   <div className="space-y-4">
-                    {popularArticles.slice(0, 3).map((pop) => (
+                    {editorsPickArticles.slice(0, 3).map((pop) => (
                       <ArticleCard
                         key={pop.id}
                         article={pop}

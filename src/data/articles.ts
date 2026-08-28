@@ -93,7 +93,8 @@ This is not a city that performs for tourists, though it welcomes them warmly. I
     tags: ['Dublin', 'Ireland', 'Literary Travel', 'Pub Culture', 'Boutique Hotels', 'City Guide', 'Europe'],
     featured: true,
     isPopular: true,
-    isEditorPick: true
+    isEditorPick: true,
+    homeSection: 'hero_cover'
   },
   {
     id: 'mexico-beyond-cancun-8-destinations',
@@ -155,7 +156,8 @@ The real Mexico is one of the world's great cultural civilizations — ancient, 
     tags: ['Mexico', 'Oaxaca', 'Culinary Travel', 'Americas', 'Colonial Architecture', 'Hidden Gems'],
     featured: false,
     isPopular: true,
-    isEditorPick: true
+    isEditorPick: true,
+    homeSection: 'top_stories'
   },
   {
     id: 'dubai-desert-sanctuaries-avant-garde',
@@ -216,7 +218,8 @@ The second Dubai is quieter, older, and far more compelling. It is found in the 
     tags: ['Dubai', 'Middle East', 'Desert Sanctuaries', 'Luxury Hotels', 'Architecture', 'Culture'],
     featured: false,
     isPopular: true,
-    isEditorPick: true
+    isEditorPick: true,
+    homeSection: 'top_stories'
   },
   {
     id: 'kyoto-after-hours-zen-machiya',
@@ -241,7 +244,7 @@ During the middle of the day, the ancient capital can feel overwhelmed by modern
       {
         heading: 'The Magic of Machiya Living',
         paragraphs: [
-          'Machiya are traditional wooden townhouses that define historic Kyoto architecture. Built with narrow street facades and deep courtyards (tsuboniwa), they are masterclasses in light, shadow, and natural ventilation.',
+          'Machiya are traditional wooden townhouses that define historic Kyoto architecture. Built with narrow street facades and deep courran (tsuboniwa), they are masterclasses in light, shadow, and natural ventilation.',
           'Staying in a restored machiya allows you to experience tatami-matted stillness, soaking in aromatic hinoki wood tubs while rain gently falls on courtyard moss gardens.'
         ],
         quote: 'In a Kyoto machiya, the boundary between interior living and exterior nature dissolves completely.',
@@ -271,7 +274,8 @@ During the middle of the day, the ancient capital can feel overwhelmed by modern
     tags: ['Kyoto', 'Japan', 'Asia', 'Ryokan', 'Zen Gardens', 'Culture', 'Slow Travel'],
     featured: false,
     isPopular: true,
-    isEditorPick: true
+    isEditorPick: true,
+    homeSection: 'top_stories'
   },
   {
     id: 'amalfi-coast-autumn-cliffside-villas',
@@ -320,7 +324,8 @@ The sea retains its warmth from months of Mediterranean sun, the hillside pergol
     tags: ['Italy', 'Amalfi Coast', 'Positano', 'Luxury Hotels', 'Mediterranean', 'Europe', 'Stay'],
     featured: false,
     isPopular: true,
-    isEditorPick: true
+    isEditorPick: true,
+    homeSection: 'editors_pick'
   },
   {
     id: 'slovenia-country-kept-itself-small',
@@ -352,6 +357,7 @@ Rather than chasing mega-resorts and cruise ship terminals, the country chose a 
     tags: ['Slovenia', 'Hidden Gems', 'Alps', 'Nature', 'Sustainable Travel', 'Europe'],
     featured: false,
     isPopular: true,
-    isEditorPick: true
+    isEditorPick: true,
+    homeSection: 'latest'
   }
 ];

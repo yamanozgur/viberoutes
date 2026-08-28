@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Article, MainCategory, SubCategory } from '../types';
+import { Article, MainCategory, SubCategory, HomeSection } from '../types';
 import { parseDocxFile, ParsedDocxResult } from '../utils/docxImporter';
 import {
   FileText,
@@ -66,6 +66,14 @@ const SUBCATEGORIES: SubCategory[] = [
   'Train Journeys',
   'Best Of',
   'Cultural Essays',
+];
+
+export const HOME_SECTIONS: { id: HomeSection; label: string; description: string }[] = [
+  { id: 'hero_cover', label: 'Cover Story (Manşet)', description: 'Ana sayfanın en üstündeki ana büyük kapak hikayesi' },
+  { id: 'top_stories', label: 'Top Stories Today (Günün Öne Çıkanları)', description: 'Manşetin sağ tarafındaki 01-03 dikey sıralı liste' },
+  { id: 'editors_pick', label: 'Editor’s Must-Read (Editörün Seçtikleri)', description: 'Editörün olmazsa olmaz önerileri ve slow travel seçkisi' },
+  { id: 'latest', label: 'Latest Stories & Field Reports (Son Yazılar)', description: 'Ana akış ve kültürel dosyalar bölümü' },
+  { id: 'none', label: 'Yalnızca Kategori Sayfası', description: 'Ana sayfada özel blokta yer almaz, kategori filtrelerinde listelenir' },
 ];
 
 const DEFAULT_COVER = 'https://images.unsplash.com/photo-1549918864-48ac978761a4?auto=format&fit=crop&w=1600&q=80';
@@ -170,6 +178,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [authorName, setAuthorName] = useState('Özgür Yaman');
   const [authorRole, setAuthorRole] = useState('Editor-in-Chief & Founder');
   const [coverUrl, setCoverUrl] = useState(DEFAULT_COVER);
+  const [homeSection, setHomeSection] = useState<HomeSection>('latest');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -287,6 +296,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setAuthorName(article.author.name);
     setAuthorRole(article.author.role);
     setCoverUrl(article.coverImage || DEFAULT_COVER);
+    setHomeSection(article.homeSection || (article.featured ? 'hero_cover' : (article.isPopular ? 'top_stories' : (article.isEditorPick ? 'editors_pick' : 'latest'))));
 
     addLog('edit', `Yazı düzenleme moduna alındı: "${article.title}"`);
     setActiveTab('editor');
@@ -370,8 +380,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       introParagraph: introParagraph || subtitle,
       sections: sections,
       tags: [subCategory, region, 'Editorial', 'Curated Story'],
-      featured: existingArticle ? existingArticle.featured : true,
-      isEditorPick: true,
+      featured: homeSection === 'hero_cover',
+      isPopular: homeSection === 'top_stories' || homeSection === 'hero_cover',
+      isEditorPick: homeSection === 'editors_pick' || homeSection === 'top_stories',
+      homeSection: homeSection,
       affiliateDisclaimer: true,
     };
 
@@ -732,6 +744,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   </div>
                 </div>
 
+                {/* Homepage Section Placement Selector */}
+                <div className="pt-2 bg-[#F5F2EC] p-3.5 border border-[#E0D9CD]">
+                  <label className="text-xs font-ui font-semibold uppercase tracking-wider text-[#1A1814] block mb-1.5 flex items-center justify-between">
+                    <span>Ana Sayfa Vitrin Bölümü</span>
+                    <span className="text-[11px] font-normal text-[#767064] lowercase">
+                      {HOME_SECTIONS.find((s) => s.id === homeSection)?.description}
+                    </span>
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                    {HOME_SECTIONS.map((sec) => (
+                      <button
+                        key={sec.id}
+                        type="button"
+                        onClick={() => setHomeSection(sec.id)}
+                        className={`p-2.5 text-left border transition-all cursor-pointer ${
+                          homeSection === sec.id
+                            ? 'bg-[#1A1814] text-[#FAF8F5] border-[#1A1814] shadow-xs'
+                            : 'bg-[#FFFFFF] text-[#2D2924] border-[#D5CFC5] hover:border-[#9E7B54]'
+                        }`}
+                      >
+                        <div className="font-ui text-xs font-semibold">{sec.label}</div>
+                        <div className={`text-[10px] mt-0.5 line-clamp-1 ${
+                          homeSection === sec.id ? 'text-[#D5CFC5]' : 'text-[#767064]'
+                        }`}>
+                          {sec.description}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                   <div>
                     <label className="text-[11px] font-ui text-[#767064] block mb-1">
@@ -844,12 +887,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         <h4 className="font-display text-base font-medium text-[#1A1814] truncate">
                           {art.title}
                         </h4>
-                        <div className="flex items-center space-x-3 text-xs font-ui text-[#767064]">
+                        <div className="flex items-center space-x-3 text-xs font-ui text-[#767064] mt-0.5">
                           <span>{art.author.name}</span>
                           <span>•</span>
                           <span>{art.category}</span>
                           <span>•</span>
-                          <span>{art.readTime}</span>
+                          <span className={`px-1.5 py-0.2 text-[10px] uppercase font-semibold border ${
+                            art.homeSection === 'hero_cover' || (!art.homeSection && art.featured)
+                              ? 'bg-[#1A1814] text-[#FAF8F5] border-[#1A1814]'
+                              : art.homeSection === 'top_stories'
+                              ? 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]'
+                              : art.homeSection === 'editors_pick'
+                              ? 'bg-[#E0F2FE] text-[#075985] border-[#BAE6FD]'
+                              : 'bg-[#F3F4F6] text-[#4B5563] border-[#E5E7EB]'
+                          }`}>
+                            {art.homeSection === 'hero_cover' || (!art.homeSection && art.featured)
+                              ? 'Manşet'
+                              : art.homeSection === 'top_stories'
+                              ? 'Top Stories'
+                              : art.homeSection === 'editors_pick'
+                              ? 'Editor’s Pick'
+                              : 'Latest / Akış'}
+                          </span>
                         </div>
                       </div>
                     </div>

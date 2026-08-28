@@ -77,6 +77,8 @@ export interface ArticleContentSection {
   };
 }
 
+export type HomeSection = 'hero_cover' | 'top_stories' | 'editors_pick' | 'latest' | 'none';
+
 export interface Article {
   id: string;
   slug: string;
@@ -104,6 +106,7 @@ export interface Article {
   featured?: boolean;
   isPopular?: boolean;
   isEditorPick?: boolean;
+  homeSection?: HomeSection;
   affiliateDisclaimer?: boolean;
   externalUrl?: string;
   isExternalLink?: boolean;
