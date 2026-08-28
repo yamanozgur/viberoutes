@@ -110,10 +110,6 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({
                 className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-103"
               />
             </div>
-            <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-[#1A1814]/80 via-[#1A1814]/30 to-transparent text-[#FAFAF7] flex justify-between items-end">
-              <span className="text-xs font-ui tracking-wider uppercase text-[#E2C799] font-medium">{article.region}</span>
-              <span className="text-xs font-display italic text-[#E5E0D8]">Monocle / Kinfolk Archive #2026</span>
-            </div>
           </div>
         </div>
       </div>

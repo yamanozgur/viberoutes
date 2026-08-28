@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Article, MainCategory, SubCategory } from '../types';
+import { normalizeUnsplashUrl, parseDraftWithUnsplash } from '../utils/unsplash';
 import {
   PenTool,
   Trash2,
@@ -16,15 +17,17 @@ import {
   RotateCcw,
   Bold,
   Italic,
-  Heading2,
-  Heading3,
   List,
   ListOrdered,
   Quote,
   Link,
   Minus,
   Sparkles,
-  HelpCircle,
+  User,
+  Copy,
+  FileText,
+  ExternalLink,
+  Code
 } from 'lucide-react';
 
 interface AdminPanelProps {
@@ -75,6 +78,10 @@ const SUBCATEGORY_OPTIONS: SubCategory[] = [
 
 const PRESET_PHOTOS = [
   {
+    label: 'Dublin Heritage',
+    url: 'https://images.unsplash.com/photo-1549918864-48ac978761a4?auto=format&fit=crop&w=1600&q=80',
+  },
+  {
     label: 'Kyoto Sanctuary',
     url: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1600&q=80',
   },
@@ -87,15 +94,11 @@ const PRESET_PHOTOS = [
     url: 'https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=1600&q=80',
   },
   {
-    label: 'Nordic Minimalist',
-    url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80',
-  },
-  {
     label: 'Alpine Retreat',
     url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1600&q=80',
   },
   {
-    label: 'Parisian Grandeur',
+    label: 'Parisian Architecture',
     url: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1600&q=80',
   },
 ];
@@ -109,7 +112,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onDeleteArticle,
   onSelectArticle,
 }) => {
-  const [activeTab, setActiveTab] = useState<'create' | 'manage'>('create');
+  const [activeTab, setActiveTab] = useState<'importer' | 'create' | 'manage'>('importer');
   const [editorTab, setEditorTab] = useState<'edit' | 'preview'>('edit');
   const [editingArticleId, setEditingArticleId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -118,19 +121,81 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   // Form Fields
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
-  const [category, setCategory] = useState<MainCategory>('experiences');
-  const [subCategory, setSubCategory] = useState<SubCategory>('Hidden Gems');
+  const [category, setCategory] = useState<MainCategory>('destinations');
+  const [subCategory, setSubCategory] = useState<SubCategory>('Europe');
   const [region, setRegion] = useState('');
   const [authorName, setAuthorName] = useState('Özgür Yaman');
-  const [authorRole, setAuthorRole] = useState('Founder & Travel Essayist');
+  const [authorRole, setAuthorRole] = useState('Editor-in-Chief & Founder');
   const [coverImage, setCoverImage] = useState(
-    'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1600&q=80'
+    'https://images.unsplash.com/photo-1549918864-48ac978761a4?auto=format&fit=crop&w=1600&q=80'
   );
-  const [customImageUrl, setCustomImageUrl] = useState('');
+  const [unsplashInput, setUnsplashInput] = useState('');
   const [fullArticleText, setFullArticleText] = useState('');
-  const [ambientSound, setAmbientSound] = useState<'rain' | 'ocean' | 'train' | 'cafe' | 'temple'>('rain');
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [copiedCode, setCopiedCode] = useState(false);
+
+  // Raw Word / Draft Importer State
+  const [rawDraftText, setRawDraftText] = useState('');
+  const [importCoverUrl, setImportCoverUrl] = useState('');
+  const [parsedPreview, setParsedPreview] = useState<ReturnType<typeof parseDraftWithUnsplash> | null>(null);
+
+  if (!isOpen) return null;
+
+  // Real-time handle raw draft changes
+  const handleDraftTextChange = (text: string) => {
+    setRawDraftText(text);
+    if (text.trim().length > 20) {
+      const parsed = parseDraftWithUnsplash(text);
+      if (importCoverUrl.trim()) {
+        parsed.coverImage = normalizeUnsplashUrl(importCoverUrl.trim());
+      }
+      setParsedPreview(parsed);
+    } else {
+      setParsedPreview(null);
+    }
+  };
+
+  // Convert parsed draft into form & publish
+  const handleApplyDraft = () => {
+    if (!rawDraftText.trim()) return;
+    const parsed = parseDraftWithUnsplash(rawDraftText);
+    const chosenCover = importCoverUrl.trim() ? normalizeUnsplashUrl(importCoverUrl) : (parsed.coverImage || coverImage);
+
+    setTitle(parsed.title || 'Untitled Story');
+    setSubtitle(parsed.subtitle || '');
+    if (parsed.authorName) setAuthorName(parsed.authorName);
+    if (parsed.authorRole) setAuthorRole(parsed.authorRole);
+    if (parsed.region) setRegion(parsed.region);
+    setCoverImage(chosenCover);
+
+    // Build markdown text from parsed sections
+    const textPieces = [parsed.intro || ''];
+    parsed.sections.forEach(sec => {
+      if (sec.heading) {
+        textPieces.push(`### ${sec.heading}`);
+      }
+      if (sec.image?.url) {
+        textPieces.push(`![${sec.image.caption || 'Photo'}](${sec.image.url})`);
+      }
+      textPieces.push(sec.paragraphs.join('\n\n'));
+    });
+
+    setFullArticleText(textPieces.filter(Boolean).join('\n\n'));
+    setActiveTab('create');
+    setEditorTab('edit');
+    setSuccessMessage('Word taslağınız ve Unsplash fotoğrafları başarıyla editöre aktarıldı!');
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 2500);
+  };
+
+  // Apply Unsplash URL directly to Cover
+  const handleApplyUnsplashUrl = () => {
+    if (!unsplashInput.trim()) return;
+    const normalized = normalizeUnsplashUrl(unsplashInput.trim());
+    setCoverImage(normalized);
+    setUnsplashInput('');
+  };
 
   // Markdown Formatting Helper Functions
   const applyInlineFormat = (prefix: string, suffix: string, defaultPlaceholder: string = 'metin') => {
@@ -152,7 +217,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     }, 20);
   };
 
-  const applyLinePrefix = (prefix: string, defaultText: string = 'Metin') => {
+  const applyLinePrefix = (prefix: string, defaultText: string = 'Bölüm Başlığı') => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
@@ -198,8 +263,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     }, 20);
   };
 
-  if (!isOpen) return null;
-
   // Handle Edit Action from table
   const handleStartEdit = (art: Article) => {
     setEditingArticleId(art.id);
@@ -211,7 +274,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setAuthorName(art.author.name);
     setAuthorRole(art.author.role);
     setCoverImage(art.coverImage);
-    setCustomImageUrl('');
+    setUnsplashInput('');
     
     // Reconstruct full text from intro and all sections
     const textPieces = [art.introParagraph || ''];
@@ -220,11 +283,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         if (sec.heading && !['Field Notes', 'Observations', 'Field Observations & Architecture'].includes(sec.heading)) {
           textPieces.push(`### ${sec.heading}`);
         }
+        if (sec.image?.url) {
+          textPieces.push(`![${sec.image.caption || 'Photo'}](${sec.image.url})`);
+        }
         textPieces.push(sec.paragraphs.join('\n\n'));
       });
     }
     setFullArticleText(textPieces.filter(Boolean).join('\n\n'));
-    setAmbientSound(art.ambientSoundtrack?.type || 'rain');
     setActiveTab('create');
   };
 
@@ -233,14 +298,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setEditingArticleId(null);
     setTitle('');
     setSubtitle('');
-    setCategory('experiences');
-    setSubCategory('Hidden Gems');
+    setCategory('destinations');
+    setSubCategory('Europe');
     setRegion('');
     setAuthorName('Özgür Yaman');
-    setAuthorRole('Founder & Travel Essayist');
-    setCoverImage('https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1600&q=80');
-    setCustomImageUrl('');
+    setAuthorRole('Editor-in-Chief & Founder');
+    setCoverImage('https://images.unsplash.com/photo-1549918864-48ac978761a4?auto=format&fit=crop&w=1600&q=80');
+    setUnsplashInput('');
     setFullArticleText('');
+    setRawDraftText('');
+    setParsedPreview(null);
   };
 
   // Handle Photo File Upload
@@ -251,51 +318,57 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       reader.onload = () => {
         if (typeof reader.result === 'string') {
           setCoverImage(reader.result);
-          setCustomImageUrl('');
+          setUnsplashInput('');
         }
       };
       reader.readAsDataURL(file);
     }
   };
 
-  // Convert raw pasted text into complete, untruncated editorial sections
+  // Convert raw text to structured sections & image attachments
   const parseFullTextToSections = (rawText: string) => {
-    // Split on double line breaks OR single line breaks so pasted paragraphs aren't squished
     const rawParagraphs = rawText
       .split(/\n{2,}/)
       .map((p) => p.trim())
       .filter((p) => p.length > 0);
 
     if (rawParagraphs.length === 0) {
-      return {
-        intro: '',
-        sections: [],
-      };
+      return { intro: '', sections: [] };
     }
 
     const intro = rawParagraphs[0];
     const remainingParagraphs = rawParagraphs.slice(1);
 
     if (remainingParagraphs.length === 0) {
-      return {
-        intro,
-        sections: [],
-      };
+      return { intro, sections: [] };
     }
 
-    const sections: { heading: string; paragraphs: string[] }[] = [];
-    let currentHeading = '';
+    const sections: Article['sections'] = [];
+    let currentHeading = 'Highlights & Observations';
     let currentParagraphs: string[] = [];
+    let currentImage: Article['sections'][0]['image'] = undefined;
 
     remainingParagraphs.forEach((p) => {
-      // If user typed an explicit heading line (e.g. starts with # or short title)
-      if (p.startsWith('#') || (p.length < 75 && (p.endsWith(':') || (p.toUpperCase() === p && p.length > 4 && !p.includes('.'))))) {
+      // Check for Markdown images: ![caption](url)
+      const imgMatch = p.match(/^!\[(.*?)\]\((https?:\/\/[^\s)]+)\)$/);
+      if (imgMatch) {
+        currentImage = {
+          url: normalizeUnsplashUrl(imgMatch[2]),
+          caption: imgMatch[1] || 'Editorial Photo',
+          credit: 'Unsplash Archive'
+        };
+        return;
+      }
+
+      if (p.startsWith('#') || (p.length < 80 && (p.endsWith(':') || (p.toUpperCase() === p && p.length > 4 && !p.includes('.'))))) {
         if (currentParagraphs.length > 0) {
           sections.push({
             heading: currentHeading,
             paragraphs: currentParagraphs,
+            image: currentImage,
           });
           currentParagraphs = [];
+          currentImage = undefined;
         }
         currentHeading = p.replace(/^#+\s*/, '').replace(/:$/, '').trim();
       } else {
@@ -307,6 +380,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       sections.push({
         heading: currentHeading,
         paragraphs: currentParagraphs,
+        image: currentImage,
       });
     }
 
@@ -318,7 +392,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     if (!title.trim() || !fullArticleText.trim()) return;
 
     const { intro, sections } = parseFullTextToSections(fullArticleText);
-
     const totalWordCount = fullArticleText.split(/\s+/).filter(Boolean).length;
     const readTimeMinutes = Math.max(3, Math.ceil(totalWordCount / 180));
 
@@ -343,25 +416,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       coverImage: coverImage,
       author: {
         name: authorName.trim() || 'Özgür Yaman',
-        role: authorRole.trim() || 'Founder & Travel Essayist',
+        role: authorRole.trim() || 'Editor-in-Chief & Founder',
       },
       publishedDate: existingArticle?.publishedDate || new Date().toLocaleDateString('en-US', {
         month: 'short',
-        day: 'numeric',
         year: 'numeric',
       }),
       readTime: `${readTimeMinutes} min read`,
       excerpt: (subtitle.trim() || intro).slice(0, 180) + '...',
       introParagraph: intro,
       sections: sections,
-      tags: [subCategory, region.trim() || 'Curated', 'Editorial Essay'],
+      tags: [subCategory, region.trim() || 'Curated', 'Editorial Essay', 'Vibe Routes'],
       featured: existingArticle ? existingArticle.featured : true,
       isEditorPick: true,
       affiliateDisclaimer: true,
-      ambientSoundtrack: {
-        title: `${ambientSound.charAt(0).toUpperCase() + ambientSound.slice(1)} Ambience`,
-        type: ambientSound,
-      },
     };
 
     if (editingArticleId) {
@@ -369,11 +437,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       setSuccessMessage('Yazınız başarıyla güncellendi ve yayına alındı!');
     } else {
       onAddArticle(updatedArticle);
-      setSuccessMessage('Yazınız hiçbir paragrafı kırpılmadan tam metin olarak başarıyla yayınlandı!');
+      setSuccessMessage('Yazınız Unsplash fotoğraflarıyla birlikte başarıyla yayınlandı!');
     }
 
     setShowSuccess(true);
-
     setTimeout(() => {
       setShowSuccess(false);
       handleResetForm();
@@ -381,9 +448,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     }, 1200);
   };
 
+  // Copy entire articles array as TypeScript for GitHub
+  const handleCopyTypeScriptCode = () => {
+    const code = `import { Article } from '../types';\n\nexport const ARTICLES_DATA: Article[] = ${JSON.stringify(articles, null, 2)};\n`;
+    navigator.clipboard.writeText(code);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2500);
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-[#1A1814]/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-[#FAF8F5] border border-[#E5E0D8] w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] text-[#2D2924]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-[#1A1814]/65 backdrop-blur-xs animate-in fade-in duration-200">
+      <div className="bg-[#FAF8F5] border border-[#E5E0D8] w-full max-w-5xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] text-[#2D2924]">
         
         {/* Light Modal Header */}
         <div className="p-5 sm:p-6 bg-[#FFFFFF] border-b border-[#E8E3DA] flex items-center justify-between">
@@ -393,40 +468,57 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </div>
             <div>
               <span className="text-[11px] font-ui uppercase tracking-[0.25em] text-[#8C827A] block font-semibold">
-                VIBE ROUTES · EDITORIAL DESK
+                VIBE ROUTES · EDITORIAL PUBLISHING DESK
               </span>
               <h3 className="font-display text-2xl font-light text-[#1A1814]">
-                {editingArticleId ? 'Yazıyı Düzenle' : 'Yeni Yazı & Hikâye Yayınla'}
+                {editingArticleId ? 'Yazıyı Düzenle' : 'Yazı Yükleme & Editoryal Yönetim'}
               </h3>
             </div>
           </div>
 
           <div className="flex items-center space-x-3">
+            {/* Top Navigation Tabs */}
             <div className="flex bg-[#EFEAE2] p-1 border border-[#DCD5C9]">
+              <button
+                type="button"
+                onClick={() => setActiveTab('importer')}
+                className={`px-3 py-1.5 text-xs font-ui transition-all cursor-pointer font-medium flex items-center gap-1.5 ${
+                  activeTab === 'importer'
+                    ? 'bg-[#FFFFFF] text-[#1A1814] shadow-xs'
+                    : 'text-[#767064] hover:text-[#1A1814]'
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5 text-[#9E7B54]" />
+                <span>Word & Unsplash Aktarıcı</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => {
                   if (!editingArticleId) handleResetForm();
                   setActiveTab('create');
                 }}
-                className={`px-3.5 py-1.5 text-xs font-ui transition-all cursor-pointer font-medium ${
+                className={`px-3 py-1.5 text-xs font-ui transition-all cursor-pointer font-medium flex items-center gap-1.5 ${
                   activeTab === 'create'
                     ? 'bg-[#FFFFFF] text-[#1A1814] shadow-xs'
                     : 'text-[#767064] hover:text-[#1A1814]'
                 }`}
               >
-                {editingArticleId ? '✏️ Yazıyı Düzenle' : '+ Yeni Yazı Ekle'}
+                <Edit3 className="w-3.5 h-3.5 text-[#9E7B54]" />
+                <span>{editingArticleId ? 'Yazıyı Düzenle' : 'Manuel Editör'}</span>
               </button>
+
               <button
                 type="button"
                 onClick={() => setActiveTab('manage')}
-                className={`px-3.5 py-1.5 text-xs font-ui transition-all cursor-pointer font-medium ${
+                className={`px-3 py-1.5 text-xs font-ui transition-all cursor-pointer font-medium flex items-center gap-1.5 ${
                   activeTab === 'manage'
                     ? 'bg-[#FFFFFF] text-[#1A1814] shadow-xs'
                     : 'text-[#767064] hover:text-[#1A1814]'
                 }`}
               >
-                Yayındaki Yazılar ({articles.length})
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Yazılar ({articles.length})</span>
               </button>
             </div>
 
@@ -448,10 +540,119 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </div>
           )}
 
-          {activeTab === 'create' ? (
+          {/* TAB 1: WORD / DRAFT & UNSPLASH AUTO IMPORTER */}
+          {activeTab === 'importer' && (
+            <div className="space-y-6">
+              <div className="bg-[#FFFFFF] p-6 border border-[#E5E0D8] space-y-4 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-[#9E7B54] font-ui text-xs uppercase tracking-wider font-semibold">
+                    <Sparkles className="w-4 h-4" />
+                    <span>Word, Google Docs veya Düz Metin Taslağı Yapıştırın</span>
+                  </div>
+                  <span className="text-[11px] font-ui text-[#8C827A]">
+                    Unsplash linklerini otomatik tanır ve yüksek çözünürlüklü fotoğrafa çevirir.
+                  </span>
+                </div>
+
+                <div className="bg-[#FAF8F5] p-3 border border-[#E8E3DA] text-xs font-ui text-[#5C564E] space-y-1">
+                  <p className="font-medium text-[#1A1814]">💡 Freelance Yazarlar ve Editörler İçin Kolay İpuçları:</p>
+                  <p>• Kapak için: Taslağın içine <code className="bg-[#FFFFFF] px-1 py-0.5 border border-[#DCD5C9]">[cover: https://unsplash.com/photos/...]</code> yazabilirsiniz.</p>
+                  <p>• Yazar için: <code className="bg-[#FFFFFF] px-1 py-0.5 border border-[#DCD5C9]">Author: Ad Soyad</code> ve <code className="bg-[#FFFFFF] px-1 py-0.5 border border-[#DCD5C9]">Role: Contributing Writer</code> ekleyebilirsiniz.</p>
+                  <p>• Bölüm fotoları için: Paragraf aralarına Unsplash linkini yapıştırmanız yeterlidir.</p>
+                </div>
+
+                {/* Optional Quick Cover Unsplash Input */}
+                <div>
+                  <label className="text-xs font-ui font-medium text-[#4A453E] block mb-1">
+                    Özel Unsplash Kapak Linki (İsteğe bağlı):
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      placeholder="https://unsplash.com/photos/... veya https://images.unsplash.com/..."
+                      value={importCoverUrl}
+                      onChange={(e) => {
+                        setImportCoverUrl(e.target.value);
+                        if (parsedPreview) {
+                          setParsedPreview({
+                            ...parsedPreview,
+                            coverImage: normalizeUnsplashUrl(e.target.value),
+                          });
+                        }
+                      }}
+                      className="grow bg-[#FAFAF8] border border-[#D5CFC5] px-3 py-2 text-xs font-ui text-[#1A1814] focus:bg-[#FFFFFF] focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Draft Text Area */}
+                <div>
+                  <label className="text-xs font-ui font-medium text-[#4A453E] block mb-1.5">
+                    Metin Taslağını Buraya Yapıştırın:
+                  </label>
+                  <textarea
+                    rows={12}
+                    placeholder="Word'den kopyaladığınız yazıyı başlıkları ve Unsplash linkleriyle buraya doğrudan yapıştırın..."
+                    value={rawDraftText}
+                    onChange={(e) => handleDraftTextChange(e.target.value)}
+                    className="w-full bg-[#FAFAF8] border border-[#D5CFC5] p-4 text-xs sm:text-sm font-reading text-[#1A1814] leading-[1.85] focus:bg-[#FFFFFF] focus:outline-none focus:border-[#9E7B54]"
+                  />
+                </div>
+
+                {/* Parsed Live Preview Summary */}
+                {parsedPreview && (
+                  <div className="p-4 bg-[#FAF7F2] border border-[#D8D2C7] space-y-3">
+                    <span className="text-xs font-ui uppercase tracking-wider text-[#9E7B54] font-semibold block">
+                      ✓ Algılanan Yazı Özeti:
+                    </span>
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                      {parsedPreview.coverImage && (
+                        <div className="md:col-span-3 h-24 bg-[#EBE5DC] overflow-hidden border border-[#D8D2C7]">
+                          <img
+                            src={parsedPreview.coverImage}
+                            alt="Parsed Cover"
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <div className={parsedPreview.coverImage ? 'md:col-span-9 space-y-1' : 'md:col-span-12 space-y-1'}>
+                        <h4 className="font-display text-lg font-medium text-[#1A1814]">
+                          {parsedPreview.title || 'Başlık algılanamadı (ilk satır başlık yapılabilir)'}
+                        </h4>
+                        <p className="text-xs font-ui text-[#767064]">
+                          Yazar: <strong>{parsedPreview.authorName || authorName}</strong> · 
+                          Bölüm Sayısı: <strong>{parsedPreview.sections.length}</strong> · 
+                          Çıkarılan Unsplash Görseli: <strong>{parsedPreview.extractedUnsplashUrls.length}</strong>
+                        </p>
+                        {parsedPreview.intro && (
+                          <p className="text-xs font-reading text-[#4A453E] line-clamp-2 italic">
+                            "{parsedPreview.intro}"
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    disabled={!rawDraftText.trim()}
+                    onClick={handleApplyDraft}
+                    className="w-full py-3.5 bg-[#1A1814] hover:bg-[#9E7B54] disabled:opacity-50 text-[#FFFFFF] text-xs font-ui uppercase tracking-widest font-semibold flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-sm"
+                  >
+                    <Sparkles className="w-4 h-4 text-[#C9A882]" />
+                    <span>Taslağı İncele & Manuel Editöre Aktar</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: MANUAL COMPOSER & EDITOR */}
+          {activeTab === 'create' && (
             <form onSubmit={handlePublishOrUpdate} className="space-y-6">
-              
-              {/* Editing Notification Banner */}
               {editingArticleId && (
                 <div className="p-3.5 bg-[#FFF9E6] border border-[#E6C665] flex items-center justify-between text-xs font-ui text-[#805B00]">
                   <div className="flex items-center gap-2">
@@ -484,7 +685,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     <input
                       type="text"
                       required
-                      placeholder="Örn: The Quiet Art of Slow Travel in the Dolomites..."
+                      placeholder="Örn: Dublin: Where the Conversation Never Really Ends..."
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       className="w-full bg-[#FAFAF8] border border-[#D5CFC5] px-3.5 py-2.5 text-sm font-display text-[#1A1814] focus:bg-[#FFFFFF] focus:outline-none focus:border-[#9E7B54]"
@@ -497,7 +698,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     </label>
                     <input
                       type="text"
-                      placeholder="Örn: A meditative journey through timber architecture, high-altitude trails, and alpine silence."
+                      placeholder="Örn: A guide to literary ghosts, amber-lit Victorian pubs, and Georgian squares."
                       value={subtitle}
                       onChange={(e) => setSubtitle(e.target.value)}
                       className="w-full bg-[#FAFAF8] border border-[#D5CFC5] px-3.5 py-2 text-xs font-ui text-[#1A1814] focus:bg-[#FFFFFF] focus:outline-none focus:border-[#9E7B54]"
@@ -506,16 +707,114 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </div>
               </div>
 
-              {/* 2. Full Article Textarea with Rich Editorial Toolbar & Live Preview */}
+              {/* 2. Photo & Unsplash Link Manager */}
+              <div className="bg-[#FFFFFF] p-5 border border-[#E5E0D8] space-y-4 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-[#9E7B54] font-ui text-xs uppercase tracking-wider font-semibold">
+                    <ImageIcon className="w-4 h-4" />
+                    <span>2. Kapak Görseli & Unsplash Linki</span>
+                  </div>
+                  <span className="text-[11px] font-ui text-[#8C827A]">
+                    Unsplash sayfa linkini veya direkt görsel URL'sini yapıştırabilirsiniz.
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
+                  {/* Photo Preview */}
+                  <div className="md:col-span-4 space-y-2">
+                    <div className="w-full h-36 bg-[#EFEAE2] border border-[#D8D2C7] overflow-hidden relative">
+                      <img
+                        src={coverImage}
+                        alt="Preview"
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <span className="text-[10px] font-ui text-[#8C827A] block text-center truncate">
+                      {coverImage.slice(0, 45)}...
+                    </span>
+                  </div>
+
+                  {/* Photo Actions */}
+                  <div className="md:col-span-8 space-y-3">
+                    {/* Unsplash Link input */}
+                    <div>
+                      <label className="text-[11px] font-ui font-medium text-[#4A453E] block mb-1">
+                        Unsplash Fotoğraf Linki:
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="url"
+                          placeholder="https://unsplash.com/photos/... veya https://images.unsplash.com/..."
+                          value={unsplashInput}
+                          onChange={(e) => setUnsplashInput(e.target.value)}
+                          className="grow bg-[#FAFAF8] border border-[#D5CFC5] px-3 py-2 text-xs font-ui text-[#1A1814] focus:bg-[#FFFFFF] focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleApplyUnsplashUrl}
+                          className="px-4 py-2 bg-[#1A1814] hover:bg-[#9E7B54] text-[#FFFFFF] text-xs font-ui cursor-pointer transition-colors"
+                        >
+                          Uygula
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Upload or Select Preset */}
+                    <div className="flex items-center gap-3 pt-1">
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept="image/*"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="py-1.5 px-3 bg-[#F2EDE4] hover:bg-[#E5DFD4] border border-[#D5CFC5] text-[#1A1814] text-[11px] font-ui flex items-center space-x-1.5 cursor-pointer"
+                      >
+                        <Upload className="w-3.5 h-3.5 text-[#9E7B54]" />
+                        <span>Dosya Yükle</span>
+                      </button>
+
+                      <span className="text-[11px] font-ui text-[#8C827A]">veya hazır kütüphaneden seçin:</span>
+                    </div>
+
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 pt-1">
+                      {PRESET_PHOTOS.map((preset, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setCoverImage(preset.url)}
+                          className={`h-12 border overflow-hidden transition-all cursor-pointer relative group ${
+                            coverImage === preset.url
+                              ? 'border-[#9E7B54] ring-2 ring-[#9E7B54]/40'
+                              : 'border-[#D5CFC5] opacity-75 hover:opacity-100'
+                          }`}
+                          title={preset.label}
+                        >
+                          <img
+                            src={preset.url}
+                            alt={preset.label}
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Text Editor & Markdown Toolbar */}
               <div className="bg-[#FFFFFF] p-5 border border-[#E5E0D8] space-y-3.5 shadow-2xs">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center space-x-2 text-[#9E7B54] font-ui text-xs uppercase tracking-wider font-semibold">
                     <PenTool className="w-4 h-4" />
-                    <span>2. Yazı Metni & Biçimlendirme Araç Çubuğu (Toolbar) *</span>
+                    <span>3. Yazı Metni & Paragraflar *</span>
                   </div>
                   
-                  {/* Editor / Preview Tabs */}
-                  <div className="flex items-center space-x-1 bg-[#F4EFEA] p-1 border border-[#D8D2C7] rounded-none">
+                  <div className="flex items-center space-x-1 bg-[#F4EFEA] p-1 border border-[#D8D2C7]">
                     <button
                       type="button"
                       onClick={() => setEditorTab('edit')}
@@ -552,7 +851,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           type="button"
                           onClick={() => applyInlineFormat('**', '**', 'kalın metin')}
                           title="Kalın / Bold (**metin**)"
-                          className="p-1.5 bg-[#FFFFFF] hover:bg-[#EFEAE2] text-[#1A1814] border border-[#D5CFC5] hover:border-[#1A1814] transition-colors cursor-pointer"
+                          className="p-1.5 bg-[#FFFFFF] hover:bg-[#EFEAE2] text-[#1A1814] border border-[#D5CFC5] transition-colors cursor-pointer"
                         >
                           <Bold className="w-4 h-4" />
                         </button>
@@ -560,7 +859,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           type="button"
                           onClick={() => applyInlineFormat('*', '*', 'italik metin')}
                           title="İtalik / Italic (*metin*)"
-                          className="p-1.5 bg-[#FFFFFF] hover:bg-[#EFEAE2] text-[#1A1814] border border-[#D5CFC5] hover:border-[#1A1814] transition-colors cursor-pointer"
+                          className="p-1.5 bg-[#FFFFFF] hover:bg-[#EFEAE2] text-[#1A1814] border border-[#D5CFC5] transition-colors cursor-pointer"
                         >
                           <Italic className="w-4 h-4" />
                         </button>
@@ -570,16 +869,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         <button
                           type="button"
                           onClick={() => applyLinePrefix('## ', 'Büyük Başlık')}
-                          title="Büyük Bölüm Başlığı (H2)"
-                          className="px-2 py-1 bg-[#FFFFFF] hover:bg-[#EFEAE2] text-[#1A1814] border border-[#D5CFC5] hover:border-[#1A1814] text-xs font-display font-semibold transition-colors cursor-pointer"
+                          title="Bölüm Başlığı (H2)"
+                          className="px-2 py-1 bg-[#FFFFFF] hover:bg-[#EFEAE2] text-[#1A1814] border border-[#D5CFC5] text-xs font-display font-semibold transition-colors cursor-pointer"
                         >
                           H2
                         </button>
                         <button
                           type="button"
                           onClick={() => applyLinePrefix('### ', 'Alt Başlık')}
-                          title="Alt Başlık (H3)"
-                          className="px-2 py-1 bg-[#FFFFFF] hover:bg-[#EFEAE2] text-[#1A1814] border border-[#D5CFC5] hover:border-[#1A1814] text-xs font-display transition-colors cursor-pointer"
+                          title="Bölüm Başlığı (H3)"
+                          className="px-2 py-1 bg-[#FFFFFF] hover:bg-[#EFEAE2] text-[#1A1814] border border-[#D5CFC5] text-xs font-display transition-colors cursor-pointer"
                         >
                           H3
                         </button>
@@ -589,24 +888,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         <button
                           type="button"
                           onClick={() => applyLinePrefix('- ', 'Madde içeriği')}
-                          title="Madde İşaretli Liste"
-                          className="p-1.5 bg-[#FFFFFF] hover:bg-[#EFEAE2] text-[#1A1814] border border-[#D5CFC5] hover:border-[#1A1814] transition-colors cursor-pointer"
+                          className="p-1.5 bg-[#FFFFFF] hover:bg-[#EFEAE2] text-[#1A1814] border border-[#D5CFC5] transition-colors cursor-pointer"
                         >
                           <List className="w-4 h-4" />
                         </button>
                         <button
                           type="button"
                           onClick={() => applyLinePrefix('1. ', 'Numaralı madde')}
-                          title="Numaralı Liste"
-                          className="p-1.5 bg-[#FFFFFF] hover:bg-[#EFEAE2] text-[#1A1814] border border-[#D5CFC5] hover:border-[#1A1814] transition-colors cursor-pointer"
+                          className="p-1.5 bg-[#FFFFFF] hover:bg-[#EFEAE2] text-[#1A1814] border border-[#D5CFC5] transition-colors cursor-pointer"
                         >
                           <ListOrdered className="w-4 h-4" />
                         </button>
                         <button
                           type="button"
                           onClick={() => applyLinePrefix('> ', 'Alıntı metni')}
-                          title="Alıntı / Blockquote"
-                          className="p-1.5 bg-[#FFFFFF] hover:bg-[#EFEAE2] text-[#1A1814] border border-[#D5CFC5] hover:border-[#1A1814] transition-colors cursor-pointer"
+                          className="p-1.5 bg-[#FFFFFF] hover:bg-[#EFEAE2] text-[#1A1814] border border-[#D5CFC5] transition-colors cursor-pointer"
                         >
                           <Quote className="w-4 h-4" />
                         </button>
@@ -616,59 +912,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         <button
                           type="button"
                           onClick={() => applyInlineFormat('[', '](https://example.com)', 'Bağlantı Metni')}
-                          title="Link / Bağlantı Ekle"
-                          className="p-1.5 bg-[#FFFFFF] hover:bg-[#EFEAE2] text-[#1A1814] border border-[#D5CFC5] hover:border-[#1A1814] transition-colors cursor-pointer flex items-center space-x-1 text-xs"
+                          className="p-1.5 bg-[#FFFFFF] hover:bg-[#EFEAE2] text-[#1A1814] border border-[#D5CFC5] transition-colors cursor-pointer flex items-center space-x-1 text-xs"
                         >
                           <Link className="w-3.5 h-3.5" />
                         </button>
                         <button
                           type="button"
                           onClick={() => insertCustomTemplate('\n---\n')}
-                          title="Ayraç Çizgisi (Divider)"
-                          className="p-1.5 bg-[#FFFFFF] hover:bg-[#EFEAE2] text-[#1A1814] border border-[#D5CFC5] hover:border-[#1A1814] transition-colors cursor-pointer"
+                          className="p-1.5 bg-[#FFFFFF] hover:bg-[#EFEAE2] text-[#1A1814] border border-[#D5CFC5] transition-colors cursor-pointer"
                         >
                           <Minus className="w-4 h-4" />
                         </button>
                       </div>
 
-                      {/* Quick Info Field Shortcuts */}
-                      <div className="flex flex-wrap items-center gap-1 pl-1">
-                        <button
-                          type="button"
-                          onClick={() => insertCustomTemplate('**Departure:** Ueno, Tokyo. Two to four-night seasonal itineraries.')}
-                          className="px-2 py-1 text-[11px] font-ui bg-[#FFFFFF] hover:bg-[#9E7B54] hover:text-[#FFFFFF] text-[#4A453E] border border-[#D5CFC5] transition-colors cursor-pointer"
-                        >
-                          + Departure
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => insertCustomTemplate('**Booking:** Lottery system via official website.')}
-                          className="px-2 py-1 text-[11px] font-ui bg-[#FFFFFF] hover:bg-[#9E7B54] hover:text-[#FFFFFF] text-[#4A453E] border border-[#D5CFC5] transition-colors cursor-pointer"
-                        >
-                          + Booking
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => insertCustomTemplate('**Price:** From JPY 320,000 / person (standard suite).')}
-                          className="px-2 py-1 text-[11px] font-ui bg-[#FFFFFF] hover:bg-[#9E7B54] hover:text-[#FFFFFF] text-[#4A453E] border border-[#D5CFC5] transition-colors cursor-pointer"
-                        >
-                          + Price
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => insertCustomTemplate('**Best season:** Autumn foliage (October–November).')}
-                          className="px-2 py-1 text-[11px] font-ui bg-[#FFFFFF] hover:bg-[#9E7B54] hover:text-[#FFFFFF] text-[#4A453E] border border-[#D5CFC5] transition-colors cursor-pointer"
-                        >
-                          + Best season
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => insertCustomTemplate('**Book:** [Official Booking & Tour Operator](https://example.com)')}
-                          className="px-2 py-1 text-[11px] font-ui bg-[#FFFFFF] hover:bg-[#9E7B54] hover:text-[#FFFFFF] text-[#4A453E] border border-[#D5CFC5] transition-colors cursor-pointer font-medium"
-                        >
-                          + Book Link
-                        </button>
-                      </div>
+                      {/* Add Image inside Article button */}
+                      <button
+                        type="button"
+                        onClick={() => insertCustomTemplate('![Fotoğraf Açıklaması](https://images.unsplash.com/photo-1549918864-48ac978761a4?auto=format&fit=crop&w=1600&q=80)')}
+                        className="px-2.5 py-1 text-[11px] font-ui bg-[#FFFFFF] hover:bg-[#9E7B54] hover:text-[#FFFFFF] text-[#4A453E] border border-[#D5CFC5] transition-colors cursor-pointer flex items-center gap-1"
+                      >
+                        <ImageIcon className="w-3 h-3" />
+                        <span>+ Unsplash Fotoğrafı Ekle</span>
+                      </button>
                     </div>
 
                     <textarea
@@ -678,18 +943,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       placeholder="Yazınızın tüm paragraflarını buraya yapıştırın veya yazın... 
 
 Örnek biçimlendirmeler:
-**Departure:** Ueno, Tokyo.
-**Price:** From JPY 320,000 / person
-**Book:** [Rezervasyon Linki](https://booking.com)
+### Temple Bar and Trinity College
+Most people find their way to Temple Bar within hours of arriving...
 
-İstediğiniz kelimeyi seçip üstteki B (Kalın) veya I (İtalik) butonuna basabilirsiniz."
+> 'The Long Room library is one of those rooms that makes you feel slightly better about being human.'
+
+* **The Temple Bar Pub** — Traditional music sessions daily.
+* **Davy Byrne’s** — Joyce’s favorite for gorgonzola sandwiches."
                       value={fullArticleText}
                       onChange={(e) => setFullArticleText(e.target.value)}
                       className="w-full bg-[#FAFAF8] border border-[#D5CFC5] p-4 text-xs sm:text-sm font-reading text-[#1A1814] leading-[1.9] focus:bg-[#FFFFFF] focus:outline-none focus:border-[#9E7B54]"
                     />
 
                     <div className="flex items-center justify-between text-[11px] font-ui text-[#8C827A] pt-1">
-                      <span>Metin içinde `**kalın**`, `*italik*`, `## Başlık` ve linkler kullanabilirsiniz.</span>
+                      <span>Metin içinde `**kalın**`, `*italik*`, `### Başlık`, alıntılar ve linkler kullanabilirsiniz.</span>
                       <span>{fullArticleText.split(/\s+/).filter(Boolean).length} kelime</span>
                     </div>
                   </div>
@@ -725,6 +992,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                                 {children}
                               </blockquote>
                             ),
+                            img: ({ src, alt }) => (
+                              <div className="my-4 overflow-hidden border border-[#E5E0D8]">
+                                <img src={src} alt={alt || ''} className="w-full h-64 object-cover" />
+                                {alt && <span className="block p-2 text-xs font-ui text-[#767064] bg-[#FFFFFF]">{alt}</span>}
+                              </div>
+                            ),
                             a: ({ href, children }) => (
                               <a
                                 href={href}
@@ -746,111 +1019,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 )}
               </div>
 
-              {/* 3. Photo & Cover Selection */}
+              {/* 4. Category & Author Profile (Freelance / Editor support) */}
               <div className="bg-[#FFFFFF] p-5 border border-[#E5E0D8] space-y-4 shadow-2xs">
                 <div className="flex items-center space-x-2 text-[#9E7B54] font-ui text-xs uppercase tracking-wider font-semibold">
-                  <ImageIcon className="w-4 h-4" />
-                  <span>3. Kapak Fotoğrafı Ekle / Değiştir</span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
-                  {/* Photo Preview */}
-                  <div className="md:col-span-4 space-y-2">
-                    <div className="w-full h-36 bg-[#EFEAE2] border border-[#D8D2C7] overflow-hidden relative">
-                      <img
-                        src={coverImage}
-                        alt="Preview"
-                        referrerPolicy="no-referrer"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <span className="text-[10px] font-ui text-[#8C827A] block text-center">
-                      Mevcut Seçili Kapak Fotoğrafı
-                    </span>
-                  </div>
-
-                  {/* Photo Actions */}
-                  <div className="md:col-span-8 space-y-3">
-                    {/* Upload button */}
-                    <div>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        accept="image/*"
-                        onChange={handleFileUpload}
-                        className="hidden"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="w-full py-2.5 px-4 bg-[#F2EDE4] hover:bg-[#E5DFD4] border border-[#D5CFC5] text-[#1A1814] text-xs font-ui font-medium flex items-center justify-center space-x-2 cursor-pointer transition-colors"
-                      >
-                        <Upload className="w-4 h-4 text-[#9E7B54]" />
-                        <span>Bilgisayardan Fotoğraf Yükle</span>
-                      </button>
-                    </div>
-
-                    {/* Image URL option */}
-                    <div className="flex gap-2">
-                      <input
-                        type="url"
-                        placeholder="Veya görsel linki yapıştırın (https://...)"
-                        value={customImageUrl}
-                        onChange={(e) => setCustomImageUrl(e.target.value)}
-                        className="grow bg-[#FAFAF8] border border-[#D5CFC5] px-3 py-2 text-xs font-ui text-[#1A1814] focus:bg-[#FFFFFF] focus:outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (customImageUrl.trim()) {
-                            setCoverImage(customImageUrl.trim());
-                          }
-                        }}
-                        className="px-3 py-2 bg-[#1A1814] text-[#FFFFFF] text-xs font-ui cursor-pointer"
-                      >
-                        Uygula
-                      </button>
-                    </div>
-
-                    {/* Curated Presets */}
-                    <div>
-                      <span className="text-[11px] font-ui font-medium text-[#706A62] block mb-1.5">
-                        Ya da hazır yüksek çözünürlüklü fotoğraflardan seçin:
-                      </span>
-                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
-                        {PRESET_PHOTOS.map((preset, i) => (
-                          <button
-                            key={i}
-                            type="button"
-                            onClick={() => {
-                              setCoverImage(preset.url);
-                              setCustomImageUrl('');
-                            }}
-                            className={`h-12 border overflow-hidden transition-all cursor-pointer relative group ${
-                              coverImage === preset.url
-                                ? 'border-[#9E7B54] ring-2 ring-[#9E7B54]/40'
-                                : 'border-[#D5CFC5] opacity-75 hover:opacity-100'
-                            }`}
-                            title={preset.label}
-                          >
-                            <img
-                              src={preset.url}
-                              alt={preset.label}
-                              className="w-full h-full object-cover"
-                            />
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 4. Category & Location Details */}
-              <div className="bg-[#FFFFFF] p-5 border border-[#E5E0D8] space-y-4 shadow-2xs">
-                <div className="flex items-center space-x-2 text-[#9E7B54] font-ui text-xs uppercase tracking-wider font-semibold">
-                  <Layers className="w-4 h-4" />
-                  <span>4. Kategori ve Bölge Bilgileri</span>
+                  <User className="w-4 h-4" />
+                  <span>4. Yazar Profili & Kategori Detayları</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -901,7 +1074,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       </div>
                       <input
                         type="text"
-                        placeholder="Örn: Dolomitler, İtalya veya Kyoto, Japonya"
+                        placeholder="Örn: Dublin, Ireland veya Kyoto, Japan"
                         value={region}
                         onChange={(e) => setRegion(e.target.value)}
                         className="w-full bg-[#FAFAF8] border border-[#D5CFC5] pl-8 pr-3 py-2 text-xs font-ui text-[#1A1814] focus:bg-[#FFFFFF] focus:outline-none focus:border-[#9E7B54]"
@@ -914,31 +1087,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   {/* Author Name */}
                   <div>
                     <label className="text-xs font-ui font-medium text-[#4A453E] block mb-1">
-                      Yazar Adı
+                      Yazar Adı Soyadı
                     </label>
                     <input
                       type="text"
                       value={authorName}
                       onChange={(e) => setAuthorName(e.target.value)}
+                      placeholder="Örn: Özgür Yaman veya Selin Aras"
                       className="w-full bg-[#FAFAF8] border border-[#D5CFC5] px-3 py-1.5 text-xs font-ui text-[#1A1814]"
                     />
                   </div>
 
-                  {/* Ambient Audio */}
+                  {/* Author Role */}
                   <div>
                     <label className="text-xs font-ui font-medium text-[#4A453E] block mb-1">
-                      Okuma Arka Plan Ambiyansı
+                      Yazar Unvanı / Görevi
                     </label>
-                    <select
-                      value={ambientSound}
-                      onChange={(e) => setAmbientSound(e.target.value as any)}
+                    <input
+                      type="text"
+                      value={authorRole}
+                      onChange={(e) => setAuthorRole(e.target.value)}
+                      placeholder="Örn: Editor-in-Chief veya Contributing Travel Writer"
                       className="w-full bg-[#FAFAF8] border border-[#D5CFC5] px-3 py-1.5 text-xs font-ui text-[#1A1814]"
-                    >
-                      <option value="rain">Hafif Yağmur Sesi (Rainfall)</option>
-                      <option value="waves">Okyanus Dalgaları (Ocean Waves)</option>
-                      <option value="fireplace">Şömine Çıtırtısı (Fireplace)</option>
-                      <option value="cafe">Paris Cafe Ambiyansı (Cafe)</option>
-                    </select>
+                    />
                   </div>
                 </div>
               </div>
@@ -959,20 +1130,41 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   className="grow py-4 bg-[#1A1814] hover:bg-[#9E7B54] text-[#FFFFFF] text-sm font-ui uppercase tracking-widest font-semibold flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-md"
                 >
                   <PenTool className="w-4 h-4" />
-                  <span>{editingArticleId ? 'Değişiklikleri Kaydet & Güncelle' : 'Yazıyı Tam Metin Olarak Yayına Al'}</span>
+                  <span>{editingArticleId ? 'Değişiklikleri Kaydet & Güncelle' : 'Yazıyı Tam Metin & Unsplash Görselleriyle Yayına Al'}</span>
                 </button>
               </div>
             </form>
-          ) : (
-            /* Manage Stories Table */
+          )}
+
+          {/* TAB 3: MANAGE STORIES & GITHUB SYNC */}
+          {activeTab === 'manage' && (
             <div className="space-y-4">
-              <div className="flex justify-between items-center pb-3 border-b border-[#E5E0D8]">
-                <span className="text-xs font-ui text-[#767064]">
-                  Yayındaki Toplam Yazı Sayısı: <strong className="text-[#1A1814]">{articles.length}</strong>
-                </span>
-                <span className="text-[11px] font-ui text-[#8C827A]">
-                  Tüm yazıları düzenleyebilir, silebilir veya canlı görüntüleyebilirsiniz.
-                </span>
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 pb-3 border-b border-[#E5E0D8]">
+                <div>
+                  <span className="text-xs font-ui text-[#767064]">
+                    Yayındaki Toplam Yazı Sayısı: <strong className="text-[#1A1814]">{articles.length}</strong>
+                  </span>
+                  <span className="text-[11px] font-ui text-[#8C827A] block">
+                    Tüm yazıları düzenleyebilir, önizleyebilir veya tek tıkla GitHub için dışa aktarabilirsiniz.
+                  </span>
+                </div>
+
+                <button
+                  onClick={handleCopyTypeScriptCode}
+                  className="px-3.5 py-2 bg-[#FAF8F5] hover:bg-[#1A1814] text-[#1A1814] hover:text-[#FFFFFF] border border-[#D8D2C7] text-xs font-ui flex items-center gap-1.5 transition-colors cursor-pointer font-medium shrink-0"
+                >
+                  {copiedCode ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-[#2E7D32]" />
+                      <span className="text-[#2E7D32] font-semibold">Kod Kopyalandı!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Code className="w-3.5 h-3.5 text-[#9E7B54]" />
+                      <span>GitHub İçin TypeScript Kodu Kopyala</span>
+                    </>
+                  )}
+                </button>
               </div>
 
               <div className="space-y-3">
@@ -998,13 +1190,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           {art.title}
                         </h4>
                         <span className="text-[11px] font-ui text-[#767064]">
-                          {art.author.name} · {art.publishedDate} · {art.readTime}
+                          {art.author.name} ({art.author.role}) · {art.publishedDate} · {art.readTime}
                         </span>
                       </div>
                     </div>
 
                     <div className="flex items-center space-x-2 shrink-0">
-                      {/* Edit Button */}
                       <button
                         onClick={() => handleStartEdit(art)}
                         className="px-3 py-1.5 bg-[#FAF8F5] text-[#1A1814] hover:bg-[#9E7B54] hover:text-[#FFFFFF] border border-[#D8D2C7] text-xs font-ui flex items-center gap-1.5 transition-colors cursor-pointer font-medium"
@@ -1014,7 +1205,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         <span>Düzenle</span>
                       </button>
 
-                      {/* View Button */}
                       <button
                         onClick={() => {
                           onSelectArticle(art);
@@ -1027,7 +1217,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         <span>Oku</span>
                       </button>
 
-                      {/* Delete Button */}
                       {art.id.startsWith('custom-article-') && (
                         <button
                           onClick={() => onDeleteArticle(art.id)}
@@ -1047,7 +1236,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
         {/* Light Modal Footer */}
         <div className="p-4 bg-[#FFFFFF] border-t border-[#E8E3DA] flex items-center justify-between text-xs font-ui text-[#767064]">
-          <span>Vibe Routes Publication Desk</span>
+          <span>Vibe Routes Editorial Desk & Submissions Portal</span>
           <button
             onClick={onClose}
             className="text-xs uppercase tracking-wider text-[#1A1814] hover:text-[#9E7B54] font-semibold cursor-pointer"
