@@ -7,6 +7,7 @@ interface FooterProps {
   onOpenPressModal: () => void;
   onOpenVibeFinder: () => void;
   onOpenAdminPanel?: () => void;
+  onOpenActionHistory?: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
@@ -14,6 +15,7 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenPressModal,
   onOpenVibeFinder,
   onOpenAdminPanel,
+  onOpenActionHistory,
 }) => {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
@@ -136,6 +138,16 @@ export const Footer: React.FC<FooterProps> = ({
               <li><button onClick={onOpenPressModal} className="hover:text-[#1A1814] cursor-pointer">Hotel Partnerships</button></li>
               <li><button onClick={onOpenPressModal} className="hover:text-[#1A1814] cursor-pointer">Sponsored Stay Inquiries</button></li>
               <li><button onClick={onOpenPressModal} className="hover:text-[#1A1814] cursor-pointer">Media Kit & Rates</button></li>
+              {onOpenActionHistory && (
+                <li>
+                  <button
+                    onClick={onOpenActionHistory}
+                    className="flex items-center space-x-1 text-[#D97706] hover:text-[#1A1814] font-medium cursor-pointer"
+                  >
+                    <span>İşlem Geçmişi (Action History)</span>
+                  </button>
+                </li>
+              )}
               {onOpenAdminPanel && (
                 <li>
                   <button 

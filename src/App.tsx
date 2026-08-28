@@ -51,6 +51,7 @@ export default function App() {
   const [isBookmarksOpen, setIsBookmarksOpen] = useState(false);
   const [isPressModalOpen, setIsPressModalOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [adminInitialTab, setAdminInitialTab] = useState<'upload' | 'editor' | 'articles' | 'history'>('upload');
   const [bookingModalItem, setBookingModalItem] = useState<{
     type: 'hotel' | 'list' | 'gear' | 'generic';
     hotel?: HotelFeature;
@@ -62,6 +63,16 @@ export default function App() {
     price?: string;
     location?: string;
   } | null>(null);
+
+  const handleOpenActionHistory = () => {
+    setAdminInitialTab('history');
+    setIsAdminOpen(true);
+  };
+
+  const handleOpenAdminPanel = () => {
+    setAdminInitialTab('upload');
+    setIsAdminOpen(true);
+  };
 
   // Bookmarking System (stored in localStorage)
   const [bookmarkedIds, setBookmarkedIds] = useState<string[]>(() => {
@@ -177,7 +188,8 @@ export default function App() {
         onOpenBookmarks={() => setIsBookmarksOpen(true)}
         savedCount={bookmarkedIds.length}
         onOpenVibeFinder={() => handleSelectCategory('routes')}
-        onOpenAdminPanel={() => setIsAdminOpen(true)}
+        onOpenAdminPanel={handleOpenAdminPanel}
+        onOpenActionHistory={handleOpenActionHistory}
       />
 
       {/* Main View Router */}
@@ -360,7 +372,8 @@ export default function App() {
         onSelectCategory={handleSelectCategory}
         onOpenPressModal={() => setIsPressModalOpen(true)}
         onOpenVibeFinder={() => handleSelectCategory('routes')}
-        onOpenAdminPanel={() => setIsAdminOpen(true)}
+        onOpenAdminPanel={handleOpenAdminPanel}
+        onOpenActionHistory={handleOpenActionHistory}
       />
 
       {/* Global Search Modal */}
@@ -394,7 +407,7 @@ export default function App() {
         onClose={() => setIsPressModalOpen(false)}
       />
 
-      {/* Admin Panel Story Publisher */}
+      {/* Admin Panel Story Publisher & Action History */}
       <AdminPanel
         isOpen={isAdminOpen}
         onClose={() => setIsAdminOpen(false)}
@@ -403,6 +416,7 @@ export default function App() {
         onUpdateArticle={handleUpdateArticle}
         onDeleteArticle={handleDeleteArticle}
         onSelectArticle={handleSelectArticle}
+        initialTab={adminInitialTab}
       />
     </div>
   );

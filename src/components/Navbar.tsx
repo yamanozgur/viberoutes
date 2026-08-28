@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { MainCategory, SubCategory } from '../types';
-import { Search, Menu, X, ChevronDown, Sparkles, BookOpen, Compass } from 'lucide-react';
+import { Search, Menu, X, ChevronDown, Sparkles, BookOpen, Compass, Bookmark, Activity, FileText } from 'lucide-react';
 import { getCategoryStyles } from '../utils/categoryColors';
 
 interface NavbarProps {
@@ -12,13 +12,17 @@ interface NavbarProps {
   savedCount?: number;
   onOpenVibeFinder?: () => void;
   onOpenAdminPanel: () => void;
+  onOpenActionHistory?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   currentCategory,
   onSelectCategory,
   onOpenSearch,
+  onOpenBookmarks,
+  savedCount = 0,
   onOpenAdminPanel,
+  onOpenActionHistory,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -151,6 +155,44 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Right utility buttons */}
         <div className="flex items-center space-x-2 sm:space-x-3">
+          {/* Action History / İşlem Geçmişi */}
+          <button
+            onClick={onOpenActionHistory || onOpenAdminPanel}
+            className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-ui font-bold text-[#1A1814] bg-[#FAF8F5] hover:bg-[#EFEAE2] border border-[#D8D2C7] hover:border-[#1A1814] transition-all cursor-pointer rounded-xs"
+            title="Editoryal İşlem Geçmişi (Action History)"
+          >
+            <Activity className="w-3.5 h-3.5 text-[#D97706]" />
+            <span className="hidden sm:inline">İşlem Geçmişi</span>
+          </button>
+
+          {/* Yazı Ekle / Editorial Desk */}
+          <button
+            onClick={onOpenAdminPanel}
+            className="hidden md:flex items-center space-x-1.5 px-3 py-1.5 text-xs font-ui font-bold text-[#FAF8F5] bg-[#1A1814] hover:bg-[#9E7B54] transition-all cursor-pointer rounded-xs shadow-xs"
+            title="Word Dosyası Yükle & Yazı Düzenle"
+          >
+            <FileText className="w-3.5 h-3.5 text-[#D97706]" />
+            <span>Yazı Yükle</span>
+          </button>
+
+          {/* Bookmarks / Kaydedilenler */}
+          {onOpenBookmarks && (
+            <button
+              onClick={onOpenBookmarks}
+              className="relative p-2 text-[#4A453E] hover:text-[#1A1814] hover:bg-[#FAF8F5] border border-transparent hover:border-[#E5E0D8] transition-colors cursor-pointer"
+              title="Kaydedilen Yazılar"
+              aria-label="Kaydedilen Yazılar"
+            >
+              <Bookmark className="w-4 h-4" />
+              {savedCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#D97706] text-[#FFFFFF] text-[10px] font-ui font-bold rounded-full flex items-center justify-center">
+                  {savedCount}
+                </span>
+              )}
+            </button>
+          )}
+
+          {/* Search */}
           <button
             onClick={onOpenSearch}
             className="p-2 text-[#4A453E] hover:text-[#1A1814] hover:bg-[#FAF8F5] border border-transparent hover:border-[#E5E0D8] transition-colors cursor-pointer"
@@ -175,6 +217,30 @@ export const Navbar: React.FC<NavbarProps> = ({
       {mobileMenuOpen && (
         <div className="lg:hidden bg-[#FFFFFF] border-b border-[#E5E0D8] px-6 py-6 space-y-5 max-h-[85vh] overflow-y-auto">
           <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-2 pb-3 border-b border-[#E5E0D8]">
+              <button
+                onClick={() => {
+                  if (onOpenActionHistory) onOpenActionHistory();
+                  else onOpenAdminPanel();
+                  setMobileMenuOpen(false);
+                }}
+                className="py-2.5 px-3 bg-[#FAF8F5] border border-[#D8D2C7] text-[#1A1814] text-xs font-ui font-bold flex items-center justify-center gap-1.5"
+              >
+                <Activity className="w-3.5 h-3.5 text-[#D97706]" />
+                <span>İşlem Geçmişi</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  onOpenAdminPanel();
+                  setMobileMenuOpen(false);
+                }}
+                className="py-2.5 px-3 bg-[#1A1814] text-[#FAF8F5] text-xs font-ui font-bold flex items-center justify-center gap-1.5"
+              >
+                <FileText className="w-3.5 h-3.5 text-[#D97706]" />
+                <span>Yazı Yükle</span>
+              </button>
+            </div>
             {menuStructure.map((item) => (
               <div key={item.id} className="border-b border-[#E5E0D8] pb-3">
                 <button

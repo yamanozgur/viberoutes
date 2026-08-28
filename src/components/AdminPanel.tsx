@@ -33,6 +33,7 @@ interface AdminPanelProps {
   onUpdateArticle: (article: Article) => void;
   onDeleteArticle: (id: string) => void;
   onSelectArticle: (article: Article) => void;
+  initialTab?: 'upload' | 'editor' | 'articles' | 'history';
 }
 
 interface ActionLog {
@@ -77,22 +78,47 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onUpdateArticle,
   onDeleteArticle,
   onSelectArticle,
+  initialTab = 'upload',
 }) => {
-  const [activeTab, setActiveTab] = useState<'upload' | 'editor' | 'articles' | 'history'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'editor' | 'articles' | 'history'>(initialTab);
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  
-  // Action History Logs
-  const [actionHistory, setActionHistory] = useState<ActionLog[]>([
-    {
-      id: 'log-init-1',
-      time: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      type: 'publish',
-      message: 'Sistem aktif. Bilgisayardan Word ve fotoğraf yükleme hazır.'
+
+  React.useEffect(() => {
+    if (isOpen && initialTab) {
+      setActiveTab(initialTab);
     }
-  ]);
+  }, [isOpen, initialTab]);
+  
+  // Action History Logs with LocalStorage persistence
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'upload' | 'edit' | 'publish' | 'delete' | 'photo'>('all');
+  const [actionHistory, setActionHistory] = useState<ActionLog[]>(() => {
+    try {
+      const saved = localStorage.getItem('viberoutes_action_history');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {
+      // ignore
+    }
+    return [
+      {
+        id: 'log-init-1',
+        time: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        type: 'publish',
+        message: 'Editoryal sistem aktif. Bilgisayardan Word (.docx) ve fotoğraf yükleme modülü hazır.'
+      },
+      {
+        id: 'log-init-2',
+        time: '05:30:12',
+        type: 'photo',
+        message: 'Fotoğraf optimizasyon motoru ve kırpma hazır.'
+      }
+    ];
+  });
 
   const addLog = (type: ActionLog['type'], message: string) => {
     const newLog: ActionLog = {
@@ -101,7 +127,32 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       type,
       message,
     };
-    setActionHistory((prev) => [newLog, ...prev]);
+    setActionHistory((prev) => {
+      const updated = [newLog, ...prev].slice(0, 100);
+      try {
+        localStorage.setItem('viberoutes_action_history', JSON.stringify(updated));
+      } catch (e) {
+        console.warn('Could not save action history:', e);
+      }
+      return updated;
+    });
+  };
+
+  const clearHistory = () => {
+    const resetLogs: ActionLog[] = [
+      {
+        id: `log-${Date.now()}`,
+        time: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        type: 'publish',
+        message: 'İşlem geçmişi sıfırlandı. Yeni işlemler burada anlık görüntülenecek.'
+      }
+    ];
+    setActionHistory(resetLogs);
+    try {
+      localStorage.setItem('viberoutes_action_history', JSON.stringify(resetLogs));
+    } catch {
+      // ignore
+    }
   };
   
   // Editing state
@@ -848,45 +899,123 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           )}
 
           {/* TAB 4: ACTION HISTORY PENCERESİ */}
-          {activeTab === 'history' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-display text-lg font-medium text-[#1A1814]">
-                    Editoryal İşlem Geçmişi (Action History)
-                  </h4>
-                  <p className="text-xs font-ui text-[#767064]">
-                    Yüklenen Word dosyaları, eklenen fotoğraflar ve yapılan düzenlemelerin canlı işlem kayıtları.
-                  </p>
+          {activeTab === 'history' && (() => {
+            const filteredLogs = historyFilter === 'all' 
+              ? actionHistory 
+              : actionHistory.filter((l) => l.type === historyFilter);
+
+            const publishCount = actionHistory.filter((l) => l.type === 'publish').length;
+            const uploadCount = actionHistory.filter((l) => l.type === 'upload').length;
+            const editCount = actionHistory.filter((l) => l.type === 'edit').length;
+            const photoCount = actionHistory.filter((l) => l.type === 'photo').length;
+
+            return (
+              <div className="space-y-6">
+                {/* Header and Clear Action */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#E5E0D8]">
+                  <div>
+                    <h4 className="font-display text-xl font-medium text-[#1A1814] flex items-center gap-2">
+                      <Activity className="w-5 h-5 text-[#D97706]" />
+                      <span>Editoryal İşlem Geçmişi (Action History)</span>
+                    </h4>
+                    <p className="text-xs font-ui text-[#767064] mt-0.5">
+                      Yüklenen Word belgeleri, fotoğraf atamaları, editoryal güncellemeler ve silme kayıtları.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={clearHistory}
+                      className="px-3 py-1.5 text-xs font-ui font-medium text-[#C0392B] hover:bg-[#FDF2F2] border border-[#F8B4B4] transition-colors cursor-pointer rounded-xs"
+                    >
+                      Geçmişi Temizle
+                    </button>
+                  </div>
+                </div>
+
+                {/* Quick Stats Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-[#FFFFFF] p-3.5 border border-[#E5E0D8] shadow-2xs">
+                    <span className="text-[10px] font-ui uppercase tracking-wider text-[#767064] block">Toplam İşlem</span>
+                    <span className="font-display text-2xl text-[#1A1814] font-medium">{actionHistory.length}</span>
+                  </div>
+                  <div className="bg-[#FFFFFF] p-3.5 border border-[#E5E0D8] shadow-2xs">
+                    <span className="text-[10px] font-ui uppercase tracking-wider text-[#2E7D32] block">Yayınlanan</span>
+                    <span className="font-display text-2xl text-[#2E7D32] font-medium">{publishCount}</span>
+                  </div>
+                  <div className="bg-[#FFFFFF] p-3.5 border border-[#E5E0D8] shadow-2xs">
+                    <span className="text-[10px] font-ui uppercase tracking-wider text-[#9E7B54] block">Word Yükleme</span>
+                    <span className="font-display text-2xl text-[#9E7B54] font-medium">{uploadCount}</span>
+                  </div>
+                  <div className="bg-[#FFFFFF] p-3.5 border border-[#E5E0D8] shadow-2xs">
+                    <span className="text-[10px] font-ui uppercase tracking-wider text-[#D97706] block">Düzenleme</span>
+                    <span className="font-display text-2xl text-[#D97706] font-medium">{editCount}</span>
+                  </div>
+                </div>
+
+                {/* Filter Chips */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs font-ui text-[#767064] mr-1">Filtrele:</span>
+                  {[
+                    { id: 'all', label: 'Tümü' },
+                    { id: 'publish', label: 'Yayına Alma' },
+                    { id: 'upload', label: 'Word Yükleme' },
+                    { id: 'photo', label: 'Fotoğraf' },
+                    { id: 'edit', label: 'Düzenleme' },
+                    { id: 'delete', label: 'Silme' },
+                  ].map((filter) => (
+                    <button
+                      key={filter.id}
+                      type="button"
+                      onClick={() => setHistoryFilter(filter.id as any)}
+                      className={`px-3 py-1 text-xs font-ui font-medium rounded-xs transition-colors cursor-pointer border ${
+                        historyFilter === filter.id
+                          ? 'bg-[#1A1814] text-[#FAF8F5] border-[#1A1814]'
+                          : 'bg-[#FFFFFF] text-[#5C554D] border-[#D8D2C7] hover:border-[#1A1814]'
+                      }`}
+                    >
+                      {filter.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Log List */}
+                <div className="bg-[#FFFFFF] border border-[#E5E0D8] divide-y divide-[#EFEAE2] shadow-xs">
+                  {filteredLogs.length === 0 ? (
+                    <div className="p-8 text-center text-xs font-ui text-[#767064]">
+                      Bu filtreye uygun işlem kaydı bulunamadı.
+                    </div>
+                  ) : (
+                    filteredLogs.map((log) => (
+                      <div key={log.id} className="p-3.5 sm:p-4 flex items-start space-x-3 hover:bg-[#FAF8F5] transition-colors">
+                        <div className="mt-0.5 p-1.5 rounded-full bg-[#FAF6F0] border border-[#EAE4DC]">
+                          {log.type === 'publish' && <CheckCircle2 className="w-4 h-4 text-[#2E7D32]" />}
+                          {log.type === 'upload' && <FileText className="w-4 h-4 text-[#9E7B54]" />}
+                          {log.type === 'photo' && <ImageIcon className="w-4 h-4 text-[#2563EB]" />}
+                          {log.type === 'edit' && <Edit3 className="w-4 h-4 text-[#D97706]" />}
+                          {log.type === 'delete' && <Trash2 className="w-4 h-4 text-[#DC2626]" />}
+                        </div>
+
+                        <div className="grow min-w-0">
+                          <p className="text-xs sm:text-sm font-ui text-[#1A1814] leading-relaxed">
+                            {log.message}
+                          </p>
+                          <span className="text-[11px] font-ui uppercase tracking-wider text-[#8C827A] mt-0.5 inline-block">
+                            İşlem Türü: {log.type.toUpperCase()}
+                          </span>
+                        </div>
+
+                        <div className="shrink-0 flex items-center space-x-1.5 text-[11px] font-ui text-[#8C827A] bg-[#FAF8F5] px-2 py-1 border border-[#EAE4DC] rounded-xs">
+                          <Clock className="w-3 h-3 text-[#9E7B54]" />
+                          <span>{log.time}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
-
-              <div className="bg-[#FFFFFF] border border-[#E5E0D8] divide-y divide-[#EFEAE2]">
-                {actionHistory.map((log) => (
-                  <div key={log.id} className="p-3.5 sm:p-4 flex items-start space-x-3">
-                    <div className="mt-0.5">
-                      {log.type === 'publish' && <CheckCircle2 className="w-4 h-4 text-[#2E7D32]" />}
-                      {log.type === 'upload' && <FileText className="w-4 h-4 text-[#9E7B54]" />}
-                      {log.type === 'photo' && <ImageIcon className="w-4 h-4 text-[#2563EB]" />}
-                      {log.type === 'edit' && <Edit3 className="w-4 h-4 text-[#D97706]" />}
-                      {log.type === 'delete' && <Trash2 className="w-4 h-4 text-[#DC2626]" />}
-                    </div>
-
-                    <div className="grow">
-                      <p className="text-xs sm:text-sm font-ui text-[#1A1814]">
-                        {log.message}
-                      </p>
-                    </div>
-
-                    <div className="shrink-0 flex items-center space-x-1 text-[11px] font-ui text-[#8C827A]">
-                      <Clock className="w-3 h-3" />
-                      <span>{log.time}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
       </div>
     </div>
