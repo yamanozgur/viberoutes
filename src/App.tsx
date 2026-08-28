@@ -86,9 +86,10 @@ export default function App() {
 
   const handleAddArticle = (newArticle: Article) => {
     setAllArticles((prev) => {
-      const updated = [newArticle, ...prev];
+      const defaultIds = new Set(ARTICLES_DATA.map(a => a.id));
+      const updated = [newArticle, ...prev.filter(a => a.id !== newArticle.id)];
       try {
-        const customArticles = updated.filter((a) => a.id.startsWith('custom-article-'));
+        const customArticles = updated.filter((a) => !defaultIds.has(a.id));
         localStorage.setItem('viberoutes_custom_articles', JSON.stringify(customArticles));
       } catch (e) {
         console.warn('Could not cache custom articles:', e);
@@ -100,9 +101,10 @@ export default function App() {
 
   const handleUpdateArticle = (updatedArticle: Article) => {
     setAllArticles((prev) => {
+      const defaultIds = new Set(ARTICLES_DATA.map(a => a.id));
       const updated = prev.map((a) => (a.id === updatedArticle.id ? updatedArticle : a));
       try {
-        const customArticles = updated.filter((a) => a.id.startsWith('custom-article-'));
+        const customArticles = updated.filter((a) => !defaultIds.has(a.id));
         localStorage.setItem('viberoutes_custom_articles', JSON.stringify(customArticles));
       } catch (e) {
         console.warn('Could not update cached articles:', e);
@@ -116,15 +118,19 @@ export default function App() {
 
   const handleDeleteArticle = (articleId: string) => {
     setAllArticles((prev) => {
+      const defaultIds = new Set(ARTICLES_DATA.map(a => a.id));
       const updated = prev.filter((a) => a.id !== articleId);
       try {
-        const customArticles = updated.filter((a) => a.id.startsWith('custom-article-'));
+        const customArticles = updated.filter((a) => !defaultIds.has(a.id));
         localStorage.setItem('viberoutes_custom_articles', JSON.stringify(customArticles));
       } catch (e) {
         console.warn('Could not update cached articles:', e);
       }
       return updated;
     });
+    if (selectedArticle && selectedArticle.id === articleId) {
+      setSelectedArticle(null);
+    }
   };
 
   const handleSelectCategory = (
