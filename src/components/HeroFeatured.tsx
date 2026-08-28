@@ -67,14 +67,19 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({
               >
                 {article.title}
               </h1>
-              <p className="font-display text-lg sm:text-xl italic text-[#9E7B54] font-light leading-relaxed">
-                {article.subtitle}
-              </p>
+              {article.subtitle && (
+                <p className="font-display text-lg sm:text-xl italic text-[#9E7B54] font-light leading-relaxed">
+                  {article.subtitle}
+                </p>
+              )}
             </div>
 
-            <p className="font-ui text-sm sm:text-[15.5px] text-[#38342D] leading-[1.85] font-light max-w-xl">
-              {article.excerpt}
-            </p>
+            {/* Show excerpt only if it is distinct from subtitle */}
+            {article.excerpt && (!article.subtitle || !article.excerpt.startsWith(article.subtitle.slice(0, 30))) && (
+              <p className="font-ui text-sm sm:text-[15.5px] text-[#38342D] leading-[1.85] font-light max-w-xl">
+                {article.excerpt}
+              </p>
+            )}
 
             <div className="pt-4 flex items-center justify-between">
               <div className="flex items-center space-x-3 text-xs font-ui text-[#767064]">

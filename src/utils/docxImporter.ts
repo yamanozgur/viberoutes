@@ -166,7 +166,7 @@ export async function parseDocxFile(file: File): Promise<ParsedDocxResult> {
 
   return {
     title,
-    subtitle: subtitle || intro.slice(0, 140) + '...',
+    subtitle: subtitle || '',
     intro,
     sections,
     extractedCoverUrl: extractedImages[0] || undefined,
