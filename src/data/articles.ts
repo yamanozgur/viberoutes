@@ -49,61 +49,17 @@ This is not a city that performs for tourists, though it welcomes them warmly. I
         }
       },
       {
-        heading: 'Kilmainham Gaol and the Guinness Storehouse: History, Then Reward',
-        paragraphs: [
-          'Kilmainham Gaol is not a comfortable place to visit, and that is precisely the point. The jail where the leaders of the 1916 Easter Rising were executed — walked to the stonebreakers’ yard in the early morning and shot, one by one — is presented without sentimentality and without softening. The guided tour is one of the finest in Ireland, delivered by people who understand that this history still matters. Go in the morning, before the groups arrive, and give yourself time to sit with it afterwards.',
-          'The Guinness Storehouse, a short walk away, offers a different kind of experience — and a welcome one after the weight of Kilmainham. Seven floors take you through the history and craft of Ireland’s most famous stout, and the whole thing culminates at the Gravity Bar on the roof: floor-to-ceiling glass, a 360-degree panorama of Dublin spreading out in every direction, and a perfectly poured pint of Guinness placed in your hands. It is, frankly, very good.'
-        ],
-        image: {
-          url: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?q=80&w=1200&auto=format&fit=crop',
-          caption: 'Overlooking the copper roofs and river bends of Dublin at dusk.',
-          credit: 'Vibe Routes Archive'
-        }
-      },
-      {
         heading: "The Pub: Dublin's True Living Room",
         paragraphs: [
-          'There is a particular moment that happens in a Dublin pub, usually around nine in the evening. The room has filled without anyone noticing. A musician in the corner has started playing — not announced, not amplified, just started — and somewhere along the bar, a conversation that began about football has wandered, as all good conversations do, into something more interesting. A stranger buys you a drink because it seemed like the right thing to do. This is what people mean when they talk about Irish hospitality; it is not a performance, it is just how things work here.',
-          `**Some pubs worth finding:**
-
-* **The Temple Bar Pub** — The tourists are there, yes, but so is a fiddle player who has been making this place feel alive for twenty years. Don’t let the postcards outside put you off.
-* **Davy Byrne’s** — Joyce sent Leopold Bloom here for a gorgonzola sandwich and a glass of burgundy in *Ulysses*. The sandwich is still on the menu. Ordering it feels like a small, private joke with a very dead writer.
-* **The Long Hall** — Victorian mirrors, dark wood, and a bar that has been polished by a century of elbows. Come early, find a stool, and stay.
-* **Grogan’s** — Tucked near St. Stephen’s Green, beloved by artists and writers and anyone who prefers a good toastie to a cocktail menu. Unpretentious in the best possible sense.
-* **The Brazen Head** — Dublin’s oldest pub, open since 1198, which means it has been serving drinks through famine, rebellion, and independence. The history alone justifies the walk.`,
-          '**A note on Guinness:** It tastes different here. People say this everywhere about local beers and are usually wrong. In Dublin, they are right.'
-        ],
-        quote: 'A stranger buys you a drink because it seemed like the right thing to do. This is what people mean when they talk about Irish hospitality; it is not a performance, it is just how things work here.'
-      },
-      {
-        heading: 'Food: Honest, Then Exceptional',
-        paragraphs: [
-          'Irish food has spent decades shaking off an unfair reputation, and in Dublin the transformation is complete. The foundations remain — hearty, unglamorous, deeply satisfying — but built on top of them is a restaurant scene that takes its ingredients seriously and its cooking seriously, without taking itself too seriously.',
-          `**Start with the classics:**
-* **Irish Stew** — Lamb, root vegetables, and broth, the kind of dish that makes sense of cold weather in a way that no other cuisine quite manages.
-* **Full Irish Breakfast** — Black pudding, white pudding, back bacon, sausages, eggs, and toast. Not every day, but at least once. You will understand the country better for it.
-* **Oysters** — Fresh from Galway Bay, briny and cold, best eaten standing at a counter with a glass of something pale and dry.`,
-          `**For a more serious evening:**
-* **Chapter One** — A Michelin-starred institution in the basement of the Dublin Writers Museum; modern Irish cooking that manages to be both technically accomplished and genuinely warm.
-* **Restaurant Patrick Guilbaud** — Two stars, French-Irish in spirit, and one of the finest dining rooms in the country. Book weeks ahead.
-* **Glovers Alley or Liath** — For adventurous tasting menus that push at what Irish food can be.
-
-If a Michelin dinner is within reach, do not talk yourself out of it. Reserve early; these tables fill months in advance.`
-        ]
-      },
-      {
-        heading: 'A Few Things Worth Adding',
-        paragraphs: [
-          'Dublin rewards the slightly curious traveller who wanders beyond the obvious. A few additions to the itinerary:',
-          `* **Phoenix Park** — Vast, improbably green, and home to a herd of wild fallow deer that graze near the road as if entirely indifferent to the fact that they are inside a European capital.
-* **Croke Park** — Attend a Gaelic football or hurling match if the fixtures align. The atmosphere is unlike anything in mainstream European sport — fierce, local, and completely its own thing.
-* **EPIC The Irish Emigration Museum** — Interactive and more moving than the format suggests; a genuinely good account of why so many Irish people ended up everywhere else.
-* **Live sessions** — Ask at your hotel which pub has the best traditional music session that evening. Then go there, order something, and stay for at least two hours. The music improves as the night deepens.`,
-          'The strangest thing about Dublin is how quickly it becomes familiar. After two days, you have a favourite pub. After three, you have a regular coffee order and a route through the park you have decided is better than the other routes. After four, you are explaining to someone who has just arrived which neighbourhoods are worth exploring and which pubs to avoid on weekends. You have become, very briefly, a local.'
+          'There is a particular moment that happens in a Dublin pub, usually around nine in the evening. The room has filled without anyone noticing. A musician in the corner has started playing — not announced, not amplified, just started — and somewhere along the bar, a conversation that began about football has wandered, as all good conversations do, into something more interesting. A stranger buys you a drink because it seemed like the right thing to do.',
+          `Some iconic pubs worth finding:
+- The Temple Bar Pub — The historic corner with fiddle players who bring the room alive.
+- Davy Byrne’s — Joyce sent Leopold Bloom here for a gorgonzola sandwich and a glass of burgundy in Ulysses.
+- The Long Hall — Victorian mirrors, dark wood, and a bar polished by a century of elbows.
+- Grogan’s — Tucked near St. Stephen’s Green, beloved by artists and writers for simple toasties and unfiltered charm.`
         ]
       }
     ],
-    conclusion: 'That is what Dublin does. It does not dazzle you into submission the way some cities do. It simply makes room for you, pulls up a stool, and asks what you’re having. Come for a weekend. Stay for as long as you can manage. The conversation, as promised, never really ends.',
     hotelData: [
       {
         name: 'The Shelbourne',
@@ -132,38 +88,269 @@ If a Michelin dinner is within reach, do not talk yourself out of it. Reserve ea
         affiliateUrl: 'https://www.designhotels.com',
         imageUrl: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?q=80&w=1000&auto=format&fit=crop',
         rating: '8.9 / 10'
-      },
-      {
-        name: 'Number 31',
-        formerLife: 'Sam Stephenson Modernist & Georgian Townhouse',
-        architect: 'Sam Stephenson',
-        location: '31 Leeson Close, Dublin 2',
-        description: 'A discreet Georgian townhouse on Fitzwilliam Square that functions more like a very well-run private home with an iconic sunken leather lounge and tranquil courtyard.',
-        designHighlight: '1970s sunken conversation pit with open peat fireplace and mews garden',
-        priceStarting: '€195 / night',
-        travelerTip: 'The legendary cooked-to-order breakfast featuring homemade breads and cranberry-orange compote is not to be missed.',
-        affiliateProvider: 'Mr & Mrs Smith',
-        affiliateUrl: 'https://www.mrandmrssmith.com',
-        imageUrl: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?q=80&w=1000&auto=format&fit=crop',
-        rating: '9.6 / 10'
-      },
-      {
-        name: 'The Alex',
-        formerLife: 'Contemporary Boutique Residence',
-        architect: '21 Spaces Design',
-        location: '41-47 Fenian St, Dublin 2',
-        description: 'Located minutes from Merrion Square and Grafton Street, offering mid-century velvet tones, industrial copper detailing, and a serene atmosphere designed for creative travelers.',
-        designHighlight: 'Mid-century lounge interiors with curated craft cocktail bar',
-        priceStarting: '€230 / night',
-        travelerTip: 'Take an unhurried morning walk to Oscar Wilde’s memorial in Merrion Square directly across the street.',
-        affiliateProvider: 'Booking.com',
-        affiliateUrl: 'https://www.booking.com',
-        imageUrl: 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?q=80&w=1000&auto=format&fit=crop',
-        rating: '9.0 / 10'
       }
     ],
     tags: ['Dublin', 'Ireland', 'Literary Travel', 'Pub Culture', 'Boutique Hotels', 'City Guide', 'Europe'],
     featured: true,
+    isPopular: true,
+    isEditorPick: true
+  },
+  {
+    id: 'mexico-beyond-cancun-8-destinations',
+    slug: 'mexico-beyond-cancun-8-destinations',
+    title: 'Mexico Beyond Cancun: 8 Destinations That Show You What Mexico Actually Is',
+    subtitle: 'From the stone courtyards of Oaxaca to the modernist architecture of Mexico City and the secret emerald cenotes of Yucatan.',
+    category: 'destinations',
+    subCategory: 'Americas',
+    region: 'Mexico',
+    coverImage: 'https://images.unsplash.com/photo-1518638150340-f706e86654de?q=80&w=1600&auto=format&fit=crop',
+    author: {
+      name: 'Özgür Yaman',
+      role: 'Editor-in-Chief & Founder',
+    },
+    publishedDate: 'August 2026',
+    readTime: '10 min read',
+    excerpt: 'Cancun is not Mexico. It was a deliberate construction — a resort zone built on a sandbar in the 1970s. The real country is found in cloud-forest mezcal palenques and colonial courtyards.',
+    introParagraph: `Cancun is not Mexico. It was a deliberate construction — a resort zone built on a sandbar in the 1970s by the Mexican government's tourism agency using computer models. It serves a purpose, but it tells you nothing about the country that surrounds it.
+
+The real Mexico is one of the world's great cultural civilizations — ancient, layered, complex, endlessly generous, and deeply proud. It is a place of sixteenth-century convent courtyards overgrown with bougainvillea, mountain valleys where indigenous languages are spoken before Spanish, markets that smell of dried chilies, roasted cacao, and copal incense.`,
+    sections: [
+      {
+        heading: 'Oaxaca: The Culinary and Artistic Heartbeat',
+        paragraphs: [
+          'Oaxaca City sits in a central valley ringed by mountains, paved with green volcanic cantera stone that glows after afternoon thunderstorms. It is widely considered the culinary capital of Mexico, and that reputation is well earned.',
+          'Here, food is not merely nourishment; it is an unbroken lineage stretching back thousands of years. In the Mercado 20 de Noviembre, the smoke from grilling tasajo and cecina hangs in the air alongside the fragrance of seven distinct regional moles.'
+        ],
+        quote: 'In Oaxaca, food is an unbroken lineage stretching back thousands of years.',
+        image: {
+          url: 'https://images.unsplash.com/photo-1512813195386-6cf811ad3542?q=80&w=1200&auto=format&fit=crop',
+          caption: 'Cobbled colonial streets and vibrant cantera stone facades of Oaxaca City.',
+          credit: 'Vibe Routes Archive'
+        }
+      },
+      {
+        heading: 'San Miguel de Allende & Guanajuato: The Silver Cities',
+        paragraphs: [
+          'Further north in the central highlands, the former silver mining cities offer a completely different architectural spectacle. San Miguel de Allende is renowned for its pink neo-Gothic parish church, terracotta rooftop terraces, and thriving artisan studios.',
+          'Next door, Guanajuato is an impossibly colorful labyrinth built into a narrow ravine, where traffic flows through subterranean stone tunnels beneath vibrant colonial plazas.'
+        ]
+      }
+    ],
+    hotelData: [
+      {
+        name: 'Criollo & Hotel Sin Nombre',
+        formerLife: '17th-century Oaxacan Casona',
+        architect: 'Boutique Conservation Studio',
+        location: 'Calle 20 de Noviembre, Oaxaca Centro',
+        description: 'A restored 17th-century mansion featuring vaulted stone archways, artisanal clay tiles, and an interior plunge pool illuminated by central skylights.',
+        designHighlight: 'Minimalist sand-colored plasterwork and local Zapotec textile accents',
+        priceStarting: '$280 / night',
+        travelerTip: 'Enjoy breakfast in the open-air central courtyard with freshly ground hot chocolate and Oaxacan pan de yema.',
+        affiliateProvider: 'Design Hotels',
+        affiliateUrl: 'https://www.designhotels.com',
+        imageUrl: 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?q=80&w=1000&auto=format&fit=crop',
+        rating: '9.5 / 10'
+      }
+    ],
+    tags: ['Mexico', 'Oaxaca', 'Culinary Travel', 'Americas', 'Colonial Architecture', 'Hidden Gems'],
+    featured: false,
+    isPopular: true,
+    isEditorPick: true
+  },
+  {
+    id: 'dubai-desert-sanctuaries-avant-garde',
+    slug: 'dubai-desert-sanctuaries-avant-garde',
+    title: 'Dubai: Desert Sanctuaries, Hidden Art Districts & The New Luxury Wave',
+    subtitle: 'Beyond the supertalls lies a quiet world of protected desert dunes, heritage wind towers, and bespoke design hideaways.',
+    category: 'destinations',
+    subCategory: 'Middle East',
+    region: 'United Arab Emirates',
+    coverImage: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?q=80&w=1600&auto=format&fit=crop',
+    author: {
+      name: 'Özgür Yaman',
+      role: 'Editor-in-Chief & Founder',
+    },
+    publishedDate: 'August 2026',
+    readTime: '7 min read',
+    excerpt: 'Step away from the skyline and discover the raw stillness of the Dubai Desert Conservation Reserve and the artistic pulse of Alserkal Avenue.',
+    introParagraph: `There are two Dubais. The first is familiar to anyone with a screen: the soaring glass needles, the monumental fountains, the spectacle of a metropolis that rose from coastal sands in a single generation.
+
+The second Dubai is quieter, older, and far more compelling. It is found in the ochre silence of the desert dunes at dawn, where Arabian oryx wander across pristine ridges. It lives along the Creek in the historic Al Fahidi neighbourhood, where traditional barjeel wind towers catch the maritime breeze.`,
+    sections: [
+      {
+        heading: 'The Desert Sanctuaries: Silence in the Ochre Dunes',
+        paragraphs: [
+          'Just forty-five minutes from the coast, the Dubai Desert Conservation Reserve protects over 225 square kilometres of untamed desert wilderness. Here, luxury means complete acoustic stillness, starlit dining under the Arabian night sky, and bespoke Bedouin hospitality.',
+          'Watching the sunrise paint the rippling dunes in gold and terracotta while falcons soar on morning thermals is one of the region’s truly unforgettable moments.'
+        ],
+        quote: 'Here, luxury means complete acoustic stillness and starlit skies over ancient sand dunes.',
+        image: {
+          url: 'https://images.unsplash.com/photo-1451337516015-6b6e9a44a8a3?q=80&w=1200&auto=format&fit=crop',
+          caption: 'Morning mist rising over protected desert dunes outside Dubai.',
+          credit: 'Vibe Routes Archive'
+        }
+      },
+      {
+        heading: 'Alserkal Avenue and the Creative District',
+        paragraphs: [
+          'In the industrial neighbourhood of Al Quoz, warehouse district Alserkal Avenue has evolved into the cultural heart of the contemporary Gulf. Independent contemporary art galleries, artisan coffee roasters, private screening rooms, and concept design boutiques line its pedestrian lanes.'
+        ]
+      }
+    ],
+    hotelData: [
+      {
+        name: 'Al Maha, Desert Resort & Spa',
+        formerLife: 'Luxury Bedouin Encampment Sanctuary',
+        architect: 'Arabian Heritage Architecture',
+        location: 'Dubai Desert Conservation Reserve',
+        description: 'An exclusive oasis set deep within the dunes, offering individual Bedouin tented suites with private temperature-controlled infinity pools overlooking roaming gazelles.',
+        designHighlight: 'Handcrafted Arabian antiques and private panoramic pool decks',
+        priceStarting: '$950 / night',
+        travelerTip: 'Take the complimentary sunset camel trek into the dunes with champagne and dates.',
+        affiliateProvider: 'Marriott Luxury',
+        affiliateUrl: 'https://www.marriott.com',
+        imageUrl: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?q=80&w=1000&auto=format&fit=crop',
+        rating: '9.8 / 10'
+      }
+    ],
+    tags: ['Dubai', 'Middle East', 'Desert Sanctuaries', 'Luxury Hotels', 'Architecture', 'Culture'],
+    featured: false,
+    isPopular: true,
+    isEditorPick: true
+  },
+  {
+    id: 'kyoto-after-hours-zen-machiya',
+    slug: 'kyoto-after-hours-zen-machiya',
+    title: 'Kyoto After Hours: Gion Lanterns, Ancient Machiya & Temple Gardens',
+    subtitle: 'How to experience Japan’s ancient imperial capital in absolute stillness, away from the daytime crowds.',
+    category: 'destinations',
+    subCategory: 'Asia',
+    region: 'Japan',
+    coverImage: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=1600&auto=format&fit=crop',
+    author: {
+      name: 'Özgür Yaman',
+      role: 'Editor-in-Chief & Founder',
+    },
+    publishedDate: 'August 2026',
+    readTime: '9 min read',
+    excerpt: 'When the tour buses leave and the stone lanterns flicker on along the Shirakawa River, Kyoto transforms into the poetic masterpiece it has been for twelve centuries.',
+    introParagraph: `To truly experience Kyoto, you must set your alarm for dawn or wait until the blue hour descends upon the Higashiyama hills.
+
+During the middle of the day, the ancient capital can feel overwhelmed by modern travel. But walk the cobblestone lanes of Gion at 6:30 in the morning, when the cedar-wood machiya townhouses are still shuttered and temple monks sweep gravel in meditative rhythm, and Kyoto reveals its timeless grace.`,
+    sections: [
+      {
+        heading: 'The Magic of Machiya Living',
+        paragraphs: [
+          'Machiya are traditional wooden townhouses that define historic Kyoto architecture. Built with narrow street facades and deep courtyards (tsuboniwa), they are masterclasses in light, shadow, and natural ventilation.',
+          'Staying in a restored machiya allows you to experience tatami-matted stillness, soaking in aromatic hinoki wood tubs while rain gently falls on courtyard moss gardens.'
+        ],
+        quote: 'In a Kyoto machiya, the boundary between interior living and exterior nature dissolves completely.',
+        image: {
+          url: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=1200&auto=format&fit=crop',
+          caption: 'Lantern-lit traditional stone alleyways of historic Gion at dusk.',
+          credit: 'Vibe Routes Archive'
+        }
+      }
+    ],
+    hotelData: [
+      {
+        name: 'Hoshinoya Kyoto',
+        formerLife: '17th-century Riverside Noble Retreat',
+        architect: 'Rie Azuma Design',
+        location: 'Arashiyama, Kyoto',
+        description: 'Reached only by a scenic private wooden boat gliding up the Oi River, this serene sanctuary preserves ancient Japanese craftsmanship with Michelin-caliber kaiseki dining.',
+        designHighlight: 'Karakami woodblock printed wallpapers and riverside maple viewing pavilions',
+        priceStarting: '¥110,000 / night',
+        travelerTip: 'Participate in the morning temple meditation with incense listening (kōdō) led by master practitioners.',
+        affiliateProvider: 'Hoshino Resorts',
+        affiliateUrl: 'https://hoshinoya.com',
+        imageUrl: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=1000&auto=format&fit=crop',
+        rating: '9.7 / 10'
+      }
+    ],
+    tags: ['Kyoto', 'Japan', 'Asia', 'Ryokan', 'Zen Gardens', 'Culture', 'Slow Travel'],
+    featured: false,
+    isPopular: true,
+    isEditorPick: true
+  },
+  {
+    id: 'amalfi-coast-autumn-cliffside-villas',
+    slug: 'amalfi-coast-autumn-cliffside-villas',
+    title: 'The Amalfi Coast in Autumn: Quiet Terraces, Lemon Groves & Solitary Cliffs',
+    subtitle: 'Why October and November are the golden secret season for Italy’s most cinematic shoreline.',
+    category: 'stay',
+    subCategory: 'Europe',
+    region: 'Italy',
+    coverImage: 'https://images.unsplash.com/photo-1533105079780-92b9be482077?q=80&w=1600&auto=format&fit=crop',
+    author: {
+      name: 'Özgür Yaman',
+      role: 'Editor-in-Chief & Founder',
+    },
+    publishedDate: 'August 2026',
+    readTime: '8 min read',
+    excerpt: 'When the summer yachts disperse and the Tyrrhenian sea turns deep cobalt, Positano and Ravello return to the slow, lemon-scented rhythm of authentic Campania life.',
+    introParagraph: `In midsummer, the Amalfi Coast is a dizzying carnival of traffic and sun loungers. But arrive in late autumn, and the dramatic vertical landscape belonging to Homer's sirens returns to pure poetry.
+
+The sea retains its warmth from months of Mediterranean sun, the hillside pergolas are heavy with sfusato amalfitano lemons, and table reservations at legendary cliffside trattorias no longer require months of tactical planning.`,
+    sections: [
+      {
+        heading: 'Ravello: Suspended Between Sky and Sea',
+        paragraphs: [
+          'Perched 350 meters above the sea, Ravello has always been the refuge for thinkers, composers, and poets seeking retreat from coastal bustle.',
+          'The gardens of Villa Cimbrone and Villa Rufolo, framed by century-old umbrella pines and marble statues looking out over infinity, are among the most romantic vistas on earth.'
+        ]
+      }
+    ],
+    hotelData: [
+      {
+        name: 'Le Sirenuse',
+        formerLife: 'Marchese Sersale Summer Palazzo',
+        architect: 'Family Private Casona',
+        location: 'Positano, Amalfi Coast',
+        description: 'An iconic crimson-washed palazzo in the center of Positano filled with museum-quality antiques, hand-painted Vietri tiles, and champagne sunsets on the terrace.',
+        designHighlight: 'Handcrafted ceramic tilework and candlelit terraces with views of the bay',
+        priceStarting: '€850 / night',
+        travelerTip: 'Have an unhurried aperitivo at Franco’s Bar watching the fishing boats return at twilight.',
+        affiliateProvider: 'Mr & Mrs Smith',
+        affiliateUrl: 'https://www.mrandmrssmith.com',
+        imageUrl: 'https://images.unsplash.com/photo-1533105079780-92b9be482077?q=80&w=1000&auto=format&fit=crop',
+        rating: '9.9 / 10'
+      }
+    ],
+    tags: ['Italy', 'Amalfi Coast', 'Positano', 'Luxury Hotels', 'Mediterranean', 'Europe', 'Stay'],
+    featured: false,
+    isPopular: true,
+    isEditorPick: true
+  },
+  {
+    id: 'slovenia-country-kept-itself-small',
+    slug: 'slovenia-country-kept-itself-small',
+    title: 'Slovenia: The Country That Kept Itself Small on Purpose',
+    subtitle: 'How a tiny Alpine-Adriatic nation preserved its soul, emerald rivers, and boutique farm stays by refusing to overdevelop.',
+    category: 'destinations',
+    subCategory: 'Hidden Gems',
+    region: 'Slovenia',
+    coverImage: 'https://images.unsplash.com/photo-1508873696983-2df5293cb32b?q=80&w=1600&auto=format&fit=crop',
+    author: {
+      name: 'Özgür Yaman',
+      role: 'Editor-in-Chief & Founder',
+    },
+    publishedDate: 'August 2026',
+    readTime: '7 min read',
+    excerpt: 'With sixty percent of its land covered in virgin forest and strict ecological protection, Slovenia is Europe’s greatest slow-travel sanctuary.',
+    introParagraph: `Slovenia is roughly the size of New Jersey, but within its borders it contains Julian Alpine peaks, subterranean karst caves, Mediterranean vineyards, and rivers so impossibly turquoise they look painted.
+
+Rather than chasing mega-resorts and cruise ship terminals, the country chose a different path: organic boutique farms, architectural preservation, and deep respect for the land.`,
+    sections: [
+      {
+        heading: 'The Soča Valley: Emerald Waters & Alpine Serenity',
+        paragraphs: [
+          'The Soča River carves a dramatic turquoise canyon through the Triglav National Park. Here, wooden suspension bridges sway over crystal rapids, and alpine chalets serve aged Tolminc cheeses with crisp local Rebula wine.'
+        ]
+      }
+    ],
+    tags: ['Slovenia', 'Hidden Gems', 'Alps', 'Nature', 'Sustainable Travel', 'Europe'],
+    featured: false,
     isPopular: true,
     isEditorPick: true
   }

@@ -2,7 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { ARTICLES_DATA } from './data/articles';
 import { Article, MainCategory, SubCategory, HotelFeature, ListItem, GearItem } from './types';
 import { Navbar } from './components/Navbar';
+import { TrendingTicker } from './components/TrendingTicker';
 import { HeroFeatured } from './components/HeroFeatured';
+import { DestinationsStrip } from './components/DestinationsStrip';
+import { HotelShowcaseSection } from './components/HotelShowcaseSection';
 import { ArticleCard } from './components/ArticleCard';
 import { ArticleDetail } from './components/ArticleDetail';
 import { EMagazineReader } from './components/EMagazineReader';
@@ -202,13 +205,33 @@ export default function App() {
         ) : (
           /* Standard Editorial Home / Category View */
           <div>
-            {/* If home ("all"), render the large hero cover story */}
+            {/* Top Trending Ticker Bar (Condé Nast style) */}
+            {currentCategory === 'all' && (
+              <TrendingTicker
+                onSelectTopic={(topic) => handleSelectCategory('destinations')}
+                onSelectArticle={handleSelectArticle}
+                articles={allArticles}
+              />
+            )}
+
+            {/* If home ("all"), render the large hero cover story + top 3 stories */}
             {currentCategory === 'all' && featuredArticle && (
               <HeroFeatured
                 article={featuredArticle}
+                sideArticles={allArticles.filter((a) => a.id !== featuredArticle.id)}
                 onSelectArticle={handleSelectArticle}
                 onToggleBookmark={toggleBookmark}
                 isBookmarked={bookmarkedIds.includes(featuredArticle.id)}
+                bookmarkedIds={bookmarkedIds}
+              />
+            )}
+
+            {/* Destinations in Focus Visual Strip */}
+            {currentCategory === 'all' && (
+              <DestinationsStrip
+                onSelectDestination={(region) => handleSelectCategory('destinations')}
+                articles={allArticles}
+                onSelectArticle={handleSelectArticle}
               />
             )}
 
@@ -232,6 +255,15 @@ export default function App() {
               </div>
             )}
 
+            {/* Condé Nast The Luxury Edit (Boutique Stays & Historic Sanctuaries) */}
+            {currentCategory === 'all' && (
+              <HotelShowcaseSection
+                articles={allArticles}
+                onSelectArticle={handleSelectArticle}
+                onOpenBookingModal={(item) => setBookingModalItem(item)}
+              />
+            )}
+
             {/* Curated Feed Section */}
             <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 sm:py-16 space-y-16">
               
@@ -248,16 +280,34 @@ export default function App() {
                   >
                     All {currentCategory}
                   </button>
+                  {['Europe', 'Middle East', 'Asia', 'Americas', 'Hidden Gems'].map((sub) => (
+                    <button
+                      key={sub}
+                      onClick={() => setCurrentSubCategory(sub as SubCategory)}
+                      className={`px-3.5 py-1.5 text-xs font-ui uppercase tracking-wider transition-all cursor-pointer ${
+                        currentSubCategory === sub
+                          ? 'bg-[#1A1814] text-[#FAFAF7] font-medium'
+                          : 'bg-[#FFFFFF] text-[#767064] hover:text-[#1A1814] border border-[#E5E0D8]'
+                      }`}
+                    >
+                      {sub}
+                    </button>
+                  ))}
                 </div>
               )}
 
               {/* Grid of Main Articles */}
               <div className="space-y-8">
                 <div className="flex items-center justify-between border-b border-[#E5E0D8] pb-3">
-                  <h2 className="font-display text-2xl sm:text-3xl font-light text-[#1A1814]">
-                    {currentCategory === 'all' ? 'Latest Stories & Guides' : `Field Reports`}
-                  </h2>
-                  <span className="text-xs font-ui text-[#767064]">Updated February 2026</span>
+                  <div>
+                    <span className="text-[10px] uppercase tracking-widest font-ui text-[#D97706] font-bold block">
+                      Condé Nast Traveller Edit
+                    </span>
+                    <h2 className="font-display text-2xl sm:text-3xl font-light text-[#1A1814]">
+                      {currentCategory === 'all' ? 'Latest Stories & Cultural Dossiers' : `Field Reports`}
+                    </h2>
+                  </div>
+                  <span className="text-xs font-ui text-[#767064]">Updated August 2026</span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -278,13 +328,15 @@ export default function App() {
                 <div className="space-y-6 pt-4">
                   <div className="flex items-center justify-between border-b border-[#E5E0D8] pb-3">
                     <div>
-                      <span className="text-[10px] uppercase tracking-widest font-ui text-[#767064] block">Editor’s Selection</span>
+                      <span className="text-[10px] uppercase tracking-widest font-ui text-[#0284C7] font-bold block">
+                        EDITOR’S MUST-READ LIST
+                      </span>
                       <h3 className="font-display text-2xl font-light text-[#1A1814]">Essential Slow Travel Reads</h3>
                     </div>
                   </div>
 
                   <div className="space-y-4">
-                    {popularArticles.slice(0, 2).map((pop) => (
+                    {popularArticles.slice(0, 3).map((pop) => (
                       <ArticleCard
                         key={pop.id}
                         article={pop}

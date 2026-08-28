@@ -1,6 +1,7 @@
 import React from 'react';
 import { Article } from '../types';
-import { Bookmark, Clock, ArrowUpRight } from 'lucide-react';
+import { Bookmark, Clock, ArrowUpRight, Sparkles } from 'lucide-react';
+import { getCategoryStyles } from '../utils/categoryColors';
 
 interface ArticleCardProps {
   article: Article;
@@ -19,39 +20,55 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
 }) => {
   if (!article) return null;
 
+  const categoryStyle = getCategoryStyles(article.category);
+
   if (layout === 'horizontal') {
     return (
       <article
         onClick={() => onSelectArticle(article)}
-        className="group grid grid-cols-1 md:grid-cols-12 gap-6 p-4 sm:p-6 bg-[#FFFFFF] hover:bg-[#F9F7F4] border border-[#E5E0D8] hover:border-[#C4BCAD] transition-all cursor-pointer shadow-xs"
+        className="group grid grid-cols-1 md:grid-cols-12 gap-6 p-4 sm:p-6 bg-[#FFFFFF] hover:bg-[#FAF8F5] border border-[#E5E0D8] hover:border-[#9E7B54] transition-all cursor-pointer shadow-xs"
       >
-        <div className="md:col-span-4 aspect-[16/10] overflow-hidden bg-[#F4EFEA]">
+        <div className="md:col-span-4 aspect-[16/10] overflow-hidden bg-[#F4EFEA] relative border border-[#E8E3DA]">
           <img
             src={article.coverImage}
             alt={article.title}
             referrerPolicy="no-referrer"
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
+          <div className="absolute top-2.5 left-2.5">
+            <span className={`px-2 py-0.5 text-[10px] font-ui uppercase tracking-wider font-semibold border ${categoryStyle.pillBg} shadow-xs`}>
+              {article.subCategory || article.category}
+            </span>
+          </div>
         </div>
+
         <div className="md:col-span-8 flex flex-col justify-between space-y-3">
           <div>
             <div className="flex items-center justify-between text-xs text-[#767064] font-ui uppercase tracking-wider mb-2">
-              <span>{article.category} · {article.subCategory}</span>
+              <span className="text-[#8C827A] font-medium">{article.region}</span>
               <span className="flex items-center space-x-1">
                 <Clock className="w-3 h-3 text-[#767064]" />
                 <span>{article.readTime}</span>
               </span>
             </div>
+
             <h3 className="font-display text-xl sm:text-2xl font-light text-[#1A1814] group-hover:text-[#9E7B54] transition-colors leading-snug">
               {article.title}
             </h3>
-            <p className="font-ui text-sm text-[#4A453E] font-light mt-2 line-clamp-2 leading-relaxed">
+
+            {article.subtitle && (
+              <p className="font-display text-sm italic text-[#9E7B54] font-light mt-1">
+                {article.subtitle}
+              </p>
+            )}
+
+            <p className="font-ui text-xs sm:text-sm text-[#4A453E] font-light mt-2 line-clamp-2 leading-relaxed">
               {article.excerpt}
             </p>
           </div>
 
-          <div className="flex items-center justify-between pt-2 border-t border-[#E5E0D8]">
-            <span className="text-xs text-[#767064] font-ui">{article.publishedDate}</span>
+          <div className="flex items-center justify-between pt-3 border-t border-[#E5E0D8]">
+            <span className="text-xs text-[#767064] font-ui font-medium">By {article.author.name}</span>
             <div className="flex items-center space-x-2">
               <button
                 onClick={(e) => {
@@ -59,14 +76,16 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
                   onToggleBookmark(article.id);
                 }}
                 className={`p-1.5 border transition-colors cursor-pointer ${
-                  isBookmarked ? 'bg-[#1A1814] text-[#FAFAF7] border-[#1A1814]' : 'border-[#E5E0D8] text-[#767064] hover:text-[#1A1814] bg-[#FFFFFF]'
+                  isBookmarked
+                    ? 'bg-[#1A1814] text-[#FAFAF7] border-[#1A1814]'
+                    : 'border-[#E5E0D8] text-[#767064] hover:text-[#1A1814] bg-[#FFFFFF]'
                 }`}
                 title="Bookmark"
               >
                 <Bookmark className="w-3.5 h-3.5" />
               </button>
-              <span className="text-xs font-ui uppercase tracking-wider text-[#1A1814] font-medium flex items-center gap-0.5 group-hover:text-[#9E7B54]">
-                Read <ArrowUpRight className="w-3.5 h-3.5" />
+              <span className="text-xs font-ui uppercase tracking-wider text-[#1A1814] font-semibold flex items-center gap-0.5 group-hover:text-[#9E7B54]">
+                Read Story <ArrowUpRight className="w-3.5 h-3.5" />
               </span>
             </div>
           </div>
@@ -78,29 +97,37 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   return (
     <article
       onClick={() => onSelectArticle(article)}
-      className="group flex flex-col justify-between bg-[#FFFFFF] border border-[#E5E0D8] hover:border-[#C4BCAD] transition-all cursor-pointer overflow-hidden shadow-xs"
+      className="group flex flex-col justify-between bg-[#FFFFFF] border border-[#E5E0D8] hover:border-[#9E7B54] hover:shadow-md transition-all cursor-pointer overflow-hidden shadow-2xs"
     >
       <div>
-        <div className="aspect-[16/10] overflow-hidden bg-[#F4EFEA] relative">
+        {/* Photo Container */}
+        <div className="aspect-[16/10] overflow-hidden bg-[#F4EFEA] relative border-b border-[#E8E3DA]">
           <img
             src={article.coverImage}
             alt={article.title}
             referrerPolicy="no-referrer"
-            className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-106"
           />
-          <div className="absolute top-3 left-3 bg-[#FFFFFF]/90 backdrop-blur-xs px-2.5 py-1 text-[11px] font-ui uppercase tracking-widest text-[#1A1814] border border-[#E5E0D8]">
-            {article.subCategory}
+
+          {/* Category Chip */}
+          <div className="absolute top-3 left-3">
+            <span className={`px-2.5 py-1 text-[10px] font-ui uppercase tracking-wider font-semibold border ${categoryStyle.pillBg} shadow-xs backdrop-blur-xs`}>
+              {article.subCategory || article.category}
+            </span>
           </div>
+
+          {/* Stays Counter Badge */}
           {article.hotelData && article.hotelData.length > 0 && (
-            <div className="absolute bottom-3 right-3 bg-[#1A1814] text-[#FAFAF7] px-2 py-0.5 text-[10px] font-ui uppercase tracking-wider font-medium">
-              {article.hotelData.length} Stays Included
+            <div className="absolute bottom-3 right-3 bg-[#1A1814]/90 text-[#FAFAF7] px-2 py-0.5 text-[10px] font-ui uppercase tracking-wider font-medium backdrop-blur-xs border border-[#332E27]">
+              🏨 {article.hotelData.length} Stays Included
             </div>
           )}
         </div>
 
+        {/* Text Container */}
         <div className="p-5 sm:p-6 space-y-3">
           <div className="flex items-center justify-between text-[11px] text-[#767064] font-ui uppercase tracking-widest">
-            <span>{article.region}</span>
+            <span className="font-semibold text-[#8C827A]">{article.region}</span>
             <span className="flex items-center space-x-1">
               <Clock className="w-3 h-3 text-[#767064]" />
               <span>{article.readTime}</span>
@@ -111,14 +138,14 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
             {article.title}
           </h3>
 
-          <p className="font-ui text-sm text-[#4A453E] font-light line-clamp-3 leading-relaxed">
+          <p className="font-ui text-xs sm:text-sm text-[#4A453E] font-light line-clamp-3 leading-relaxed">
             {article.excerpt}
           </p>
         </div>
       </div>
 
-      <div className="p-5 sm:p-6 pt-0 border-t border-[#E5E0D8] mt-4 flex items-center justify-between">
-        <span className="text-xs text-[#767064] font-ui">{article.author.name}</span>
+      <div className="p-5 sm:p-6 pt-0 border-t border-[#EFEAE2] mt-4 flex items-center justify-between">
+        <span className="text-xs text-[#767064] font-ui font-medium">By {article.author.name}</span>
         <div className="flex items-center space-x-2">
           <button
             onClick={(e) => {
@@ -126,13 +153,15 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
               onToggleBookmark(article.id);
             }}
             className={`p-1.5 border transition-colors cursor-pointer ${
-              isBookmarked ? 'bg-[#1A1814] text-[#FAFAF7] border-[#1A1814]' : 'border-[#E5E0D8] text-[#767064] hover:text-[#1A1814] bg-[#FFFFFF]'
+              isBookmarked
+                ? 'bg-[#1A1814] text-[#FAFAF7] border-[#1A1814]'
+                : 'border-[#E5E0D8] text-[#767064] hover:text-[#1A1814] bg-[#FFFFFF]'
             }`}
             title="Bookmark"
           >
             <Bookmark className="w-3.5 h-3.5" />
           </button>
-          <span className="text-xs font-ui uppercase tracking-wider text-[#1A1814] font-medium flex items-center gap-0.5 group-hover:text-[#9E7B54]">
+          <span className="text-xs font-ui uppercase tracking-wider text-[#1A1814] font-semibold flex items-center gap-0.5 group-hover:text-[#9E7B54]">
             Read <ArrowUpRight className="w-3.5 h-3.5" />
           </span>
         </div>

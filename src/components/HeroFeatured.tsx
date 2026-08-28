@@ -1,94 +1,115 @@
 import React from 'react';
 import { Article } from '../types';
-import { Bookmark, Clock, ArrowRight, Sparkles } from 'lucide-react';
+import { Bookmark, Clock, ArrowRight, Sparkles, TrendingUp } from 'lucide-react';
+import { getCategoryStyles } from '../utils/categoryColors';
 
 interface HeroFeaturedProps {
   article: Article;
+  sideArticles?: Article[];
   onSelectArticle: (article: Article) => void;
   onToggleBookmark: (articleId: string) => void;
   isBookmarked: boolean;
+  bookmarkedIds?: string[];
 }
 
 export const HeroFeatured: React.FC<HeroFeaturedProps> = ({
   article,
+  sideArticles = [],
   onSelectArticle,
   onToggleBookmark,
   isBookmarked,
+  bookmarkedIds = [],
 }) => {
   if (!article) return null;
 
+  const categoryStyle = getCategoryStyles(article.category);
+
   return (
-    <section className="relative border-b border-[#E5E0D8] bg-[#FAFAF7] overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-8 sm:py-14">
-        {/* Issue & Editorial Tag */}
-        <div className="flex items-center justify-between pb-6 mb-6 border-b border-[#E5E0D8]">
-          <div className="flex items-center space-x-3 text-xs tracking-widest uppercase font-ui text-[#767064]">
-            <span className="text-[#1A1814] font-medium flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-[#9E7B54]" />
-              Cover Story
-            </span>
-            <span className="text-[#C4BCAD]">/</span>
-            <span>{article.category}</span>
-            <span className="text-[#C4BCAD]">/</span>
-            <span className="text-[#1A1814] font-normal">{article.region}</span>
-          </div>
+    <section className="relative border-b border-[#E5E0D8] bg-[#FFFFFF] overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-10">
+        
+        {/* Main 2-Column Condé Nast Magazine Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-stretch">
+          
+          {/* LEFT 65%: LEAD COVER STORY */}
+          <div className="lg:col-span-7 flex flex-col justify-between space-y-5 bg-[#FAFAF8] p-6 sm:p-8 border border-[#E8E3DA] shadow-xs">
+            {/* Top Eyebrow Bar */}
+            <div className="flex items-center justify-between pb-3 border-b border-[#E8E3DA]">
+              <div className="flex items-center space-x-2.5">
+                <span className="px-2.5 py-1 text-[11px] font-ui uppercase tracking-wider font-semibold bg-[#1A1814] text-[#FAFAF7]">
+                  ✨ COVER STORY
+                </span>
+                <span className={`px-2 py-0.5 text-[11px] font-ui uppercase tracking-wider font-medium border ${categoryStyle.pillBg}`}>
+                  {article.category}
+                </span>
+                <span className="text-[#8C827A] text-xs font-light">
+                  · {article.region}
+                </span>
+              </div>
 
-          <div className="flex items-center space-x-4 text-xs font-ui text-[#767064]">
-            <span className="flex items-center space-x-1">
-              <Clock className="w-3.5 h-3.5" />
-              <span>{article.readTime}</span>
-            </span>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleBookmark(article.id);
-              }}
-              className={`p-1.5 border transition-colors cursor-pointer ${
-                isBookmarked ? 'bg-[#1A1814] text-[#FAFAF7] border-[#1A1814]' : 'border-[#E5E0D8] text-[#767064] hover:text-[#1A1814] bg-[#FFFFFF]'
-              }`}
-              title={isBookmarked ? 'Remove bookmark' : 'Save for later'}
+              <div className="flex items-center space-x-3 text-xs font-ui text-[#767064]">
+                <span className="flex items-center space-x-1">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>{article.readTime}</span>
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleBookmark(article.id);
+                  }}
+                  className={`p-1.5 border transition-colors cursor-pointer ${
+                    isBookmarked
+                      ? 'bg-[#1A1814] text-[#FAFAF7] border-[#1A1814]'
+                      : 'border-[#D8D2C7] text-[#767064] hover:text-[#1A1814] bg-[#FFFFFF]'
+                  }`}
+                  title={isBookmarked ? 'Remove bookmark' : 'Save for later'}
+                >
+                  <Bookmark className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Cinematic Hero Image */}
+            <div
+              onClick={() => onSelectArticle(article)}
+              className="cursor-pointer group relative overflow-hidden bg-[#EFEAE2] border border-[#DCD5C9] aspect-[16/10]"
             >
-              <Bookmark className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
+              <img
+                src={article.coverImage}
+                alt={article.title}
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-103"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            </div>
 
-        {/* Large Editorial Grid Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-          {/* Left Column: Headlines & Excerpt */}
-          <div className="lg:col-span-6 flex flex-col justify-between space-y-6">
-            <div className="space-y-4">
-              <span className="text-xs uppercase tracking-[0.2em] font-ui text-[#767064] block">
+            {/* Title & Subtitle */}
+            <div className="space-y-3">
+              <span className="text-xs uppercase tracking-[0.2em] font-ui text-[#8C827A] block font-medium">
                 {article.subCategory}
               </span>
               <h1
                 onClick={() => onSelectArticle(article)}
-                className="font-display text-3xl sm:text-4xl lg:text-5xl font-light text-[#1A1814] leading-[1.12] tracking-tight hover:text-[#9E7B54] transition-colors cursor-pointer"
+                className="font-display text-2xl sm:text-3xl lg:text-4xl font-light text-[#1A1814] leading-[1.18] tracking-tight hover:text-[#9E7B54] transition-colors cursor-pointer"
               >
                 {article.title}
               </h1>
               {article.subtitle && (
-                <p className="font-display text-lg sm:text-xl italic text-[#9E7B54] font-light leading-relaxed">
+                <p className="font-display text-base sm:text-lg italic text-[#9E7B54] font-light leading-relaxed">
                   {article.subtitle}
                 </p>
               )}
             </div>
 
-            {/* Show excerpt only if it is distinct from subtitle */}
-            {article.excerpt && (!article.subtitle || !article.excerpt.startsWith(article.subtitle.slice(0, 30))) && (
-              <p className="font-ui text-sm sm:text-[15.5px] text-[#38342D] leading-[1.85] font-light max-w-xl">
-                {article.excerpt}
-              </p>
-            )}
-
-            <div className="pt-4 flex items-center justify-between">
+            {/* Author and Read CTA */}
+            <div className="pt-4 border-t border-[#E8E3DA] flex items-center justify-between">
               <div className="flex items-center space-x-3 text-xs font-ui text-[#767064]">
-                <div className="w-7 h-7 rounded-full bg-[#EBE5DC] border border-[#D8D2C7] flex items-center justify-center font-display text-xs text-[#1A1814]">
+                <div className="w-7 h-7 rounded-full bg-[#1A1814] text-[#FAF8F5] flex items-center justify-center font-display text-xs font-medium">
                   {article.author.name.charAt(0)}
                 </div>
                 <div>
                   <span className="text-[#1A1814] font-medium block">{article.author.name}</span>
-                  <span className="text-[#767064] text-[11px]">{article.author.role}</span>
+                  <span className="text-[#8C827A] text-[11px]">{article.author.role}</span>
                 </div>
               </div>
 
@@ -102,21 +123,92 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({
             </div>
           </div>
 
-          {/* Right Column: Hero Cinematic Image */}
-          <div
-            onClick={() => onSelectArticle(article)}
-            className="lg:col-span-6 cursor-pointer group relative overflow-hidden bg-[#F4EFEA] border border-[#E5E0D8]"
-          >
-            <div className="aspect-[4/3] sm:aspect-[16/11] overflow-hidden">
-              <img
-                src={article.coverImage}
-                alt={article.title}
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-103"
-              />
+          {/* RIGHT 35%: TOP STORIES TODAY (Condé Nast Vertical Stack) */}
+          <div className="lg:col-span-5 flex flex-col justify-between space-y-4">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between pb-2 border-b border-[#1A1814]">
+              <div className="flex items-center space-x-2 text-[#1A1814]">
+                <TrendingUp className="w-4 h-4 text-[#D97706]" />
+                <h3 className="font-display text-lg font-semibold tracking-wide uppercase">
+                  TOP STORIES TODAY
+                </h3>
+              </div>
+              <span className="text-[11px] font-ui text-[#8C827A] uppercase tracking-wider">
+                Condé Nast Edit
+              </span>
             </div>
+
+            {/* Vertical Articles Stack */}
+            <div className="flex flex-col space-y-3.5 grow justify-between">
+              {sideArticles.slice(0, 3).map((sideArt, index) => {
+                const sideCatStyle = getCategoryStyles(sideArt.category);
+                const isSideBookmarked = bookmarkedIds.includes(sideArt.id);
+
+                return (
+                  <article
+                    key={sideArt.id}
+                    onClick={() => onSelectArticle(sideArt)}
+                    className="group bg-[#FFFFFF] p-4 border border-[#E5E0D8] hover:border-[#9E7B54] hover:shadow-xs transition-all cursor-pointer flex gap-4 items-center"
+                  >
+                    {/* Number Badge */}
+                    <div className="shrink-0 font-display text-3xl font-light text-[#C4BCAD] group-hover:text-[#9E7B54] transition-colors w-8 text-center">
+                      0{index + 1}
+                    </div>
+
+                    {/* Content */}
+                    <div className="grow min-w-0 space-y-1.5">
+                      <div className="flex items-center space-x-2 text-[10px] font-ui uppercase tracking-wider">
+                        <span className={`px-1.5 py-0.5 border ${sideCatStyle.pillBg} font-medium`}>
+                          {sideArt.subCategory || sideArt.category}
+                        </span>
+                        <span className="text-[#8C827A]">{sideArt.region}</span>
+                      </div>
+
+                      <h4 className="font-display text-base font-medium text-[#1A1814] group-hover:text-[#9E7B54] transition-colors leading-snug line-clamp-2">
+                        {sideArt.title}
+                      </h4>
+
+                      <div className="flex items-center space-x-2 text-[11px] font-ui text-[#8C827A]">
+                        <span>{sideArt.author.name}</span>
+                        <span>•</span>
+                        <span>{sideArt.readTime}</span>
+                      </div>
+                    </div>
+
+                    {/* Thumbnail Image */}
+                    <div className="w-20 h-20 shrink-0 bg-[#EFEAE2] border border-[#E5E0D8] overflow-hidden">
+                      <img
+                        src={sideArt.coverImage}
+                        alt={sideArt.title}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500"
+                      />
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            {/* Newsletter / Quick Callout Banner */}
+            <div className="bg-[#FAF6F0] p-4 border border-[#E8DFC8] flex items-center justify-between gap-3">
+              <div>
+                <span className="text-[10px] font-ui uppercase tracking-widest text-[#B45309] font-bold block">
+                  DIGITAL TRAVEL DISPATCH
+                </span>
+                <p className="text-xs font-display text-[#1A1814] font-medium">
+                  Curated boutique hotels, guides & private routes weekly.
+                </p>
+              </div>
+              <div className="w-8 h-8 rounded-full bg-[#1A1814] text-[#FAF8F5] flex items-center justify-center shrink-0">
+                <Sparkles className="w-4 h-4 text-[#D97706]" />
+              </div>
+            </div>
+
           </div>
+
         </div>
+
       </div>
     </section>
   );
