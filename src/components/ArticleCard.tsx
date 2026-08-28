@@ -119,7 +119,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
           {/* Stays Counter Badge */}
           {article.hotelData && article.hotelData.length > 0 && (
             <div className="absolute bottom-3 right-3 bg-[#1A1814]/90 text-[#FAFAF7] px-2 py-0.5 text-[10px] font-ui uppercase tracking-wider font-medium backdrop-blur-xs border border-[#332E27]">
-              🏨 {article.hotelData.length} Stays Included
+              {article.hotelData.length} Stays Included
             </div>
           )}
         </div>

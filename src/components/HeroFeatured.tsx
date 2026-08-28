@@ -37,7 +37,7 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({
             <div className="flex items-center justify-between pb-3 border-b border-[#E8E3DA]">
               <div className="flex items-center space-x-2.5">
                 <span className="px-2.5 py-1 text-[11px] font-ui uppercase tracking-wider font-semibold bg-[#1A1814] text-[#FAFAF7]">
-                  ✨ COVER STORY
+                  COVER STORY
                 </span>
                 <span className={`px-2 py-0.5 text-[11px] font-ui uppercase tracking-wider font-medium border ${categoryStyle.pillBg}`}>
                   {article.category}
@@ -187,21 +187,6 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({
                   </article>
                 );
               })}
-            </div>
-
-            {/* Newsletter / Quick Callout Banner */}
-            <div className="bg-[#FAF6F0] p-4 border border-[#E8DFC8] flex items-center justify-between gap-3">
-              <div>
-                <span className="text-[11px] font-ui uppercase tracking-widest text-[#B45309] font-bold block">
-                  DIGITAL TRAVEL DISPATCH
-                </span>
-                <p className="text-sm font-display text-[#14120E] font-medium">
-                  Curated boutique hotels, guides & private routes weekly.
-                </p>
-              </div>
-              <div className="w-8 h-8 rounded-full bg-[#1A1814] text-[#FAF8F5] flex items-center justify-center shrink-0">
-                <Sparkles className="w-4 h-4 text-[#D97706]" />
-              </div>
             </div>
 
           </div>

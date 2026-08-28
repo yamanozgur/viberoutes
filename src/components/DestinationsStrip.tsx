@@ -92,8 +92,7 @@ export const DestinationsStrip: React.FC<DestinationsStripProps> = ({
         {/* Section Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-[#E5E0D8] pb-4">
           <div>
-            <div className="flex items-center space-x-2 text-[11px] font-ui uppercase tracking-[0.25em] text-[#8C827A] font-semibold">
-              <Sparkles className="w-3.5 h-3.5 text-[#D97706]" />
+            <div className="text-[11px] font-ui uppercase tracking-[0.25em] text-[#8C827A] font-semibold">
               <span>VIBE ROUTES TRAVEL COLLECTION</span>
             </div>
             <h2 className="font-display text-2xl sm:text-3xl font-light text-[#1A1814] mt-1">
