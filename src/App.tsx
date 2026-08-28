@@ -301,7 +301,7 @@ export default function App() {
                 <div className="flex items-center justify-between border-b border-[#E5E0D8] pb-3">
                   <div>
                     <span className="text-[10px] uppercase tracking-widest font-ui text-[#D97706] font-bold block">
-                      Condé Nast Traveller Edit
+                      Vibe Routes Editorial
                     </span>
                     <h2 className="font-display text-2xl sm:text-3xl font-light text-[#1A1814]">
                       {currentCategory === 'all' ? 'Latest Stories & Cultural Dossiers' : `Field Reports`}

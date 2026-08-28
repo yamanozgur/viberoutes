@@ -94,7 +94,7 @@ export const DestinationsStrip: React.FC<DestinationsStripProps> = ({
           <div>
             <div className="flex items-center space-x-2 text-[11px] font-ui uppercase tracking-[0.25em] text-[#8C827A] font-semibold">
               <Sparkles className="w-3.5 h-3.5 text-[#D97706]" />
-              <span>Condé Nast Travel Collection</span>
+              <span>VIBE ROUTES TRAVEL COLLECTION</span>
             </div>
             <h2 className="font-display text-2xl sm:text-3xl font-light text-[#1A1814] mt-1">
               Destinations in Focus

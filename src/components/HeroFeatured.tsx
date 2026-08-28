@@ -135,7 +135,7 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({
                 </h3>
               </div>
               <span className="text-[11px] font-ui text-[#8C827A] uppercase tracking-wider">
-                Condé Nast Edit
+                Vibe Routes Edit
               </span>
             </div>
 
