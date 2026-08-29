@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { ARTICLES_DATA } from './data/articles';
 import { Article, MainCategory, SubCategory, HotelFeature, ListItem, GearItem } from './types';
+import {
+  subscribeToArticles,
+  saveArticleToFirestore,
+  deleteArticleFromFirestore,
+} from './lib/firestoreService';
 import { Navbar } from './components/Navbar';
 import { HeroFeatured } from './components/HeroFeatured';
 import { DestinationsStrip } from './components/DestinationsStrip';
@@ -39,6 +44,27 @@ export default function App() {
     }
     return ARTICLES_DATA;
   });
+
+  // Real-time synchronization with Firebase Firestore "viberoutes" database
+  useEffect(() => {
+    const unsubscribe = subscribeToArticles((cloudArticles) => {
+      if (cloudArticles && cloudArticles.length > 0) {
+        setAllArticles((prev) => {
+          const cloudIds = new Set(cloudArticles.map((a) => a.id));
+          const nonCloudDefault = ARTICLES_DATA.filter((a) => !cloudIds.has(a.id));
+          const merged = [...cloudArticles, ...nonCloudDefault];
+          try {
+            localStorage.setItem('viberoutes_custom_articles', JSON.stringify(cloudArticles));
+          } catch {
+            // ignore
+          }
+          return merged;
+        });
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Navigation & View States
   const [currentCategory, setCurrentCategory] = useState<MainCategory | 'all' | 'magazine' | 'routes' | 'videos'>('all');
@@ -97,7 +123,8 @@ export default function App() {
     );
   };
 
-  const handleAddArticle = (newArticle: Article) => {
+  const handleAddArticle = async (newArticle: Article) => {
+    // Optimistic local update
     setAllArticles((prev) => {
       const defaultIds = new Set(ARTICLES_DATA.map(a => a.id));
       const updated = [newArticle, ...prev.filter(a => a.id !== newArticle.id)];
@@ -110,9 +137,16 @@ export default function App() {
       return updated;
     });
     setSelectedArticle(newArticle);
+
+    // Save to Firestore in cloud
+    try {
+      await saveArticleToFirestore(newArticle);
+    } catch (e) {
+      console.warn('Firestore write failed, cached locally:', e);
+    }
   };
 
-  const handleUpdateArticle = (updatedArticle: Article) => {
+  const handleUpdateArticle = async (updatedArticle: Article) => {
     setAllArticles((prev) => {
       const defaultIds = new Set(ARTICLES_DATA.map(a => a.id));
       const updated = prev.map((a) => (a.id === updatedArticle.id ? updatedArticle : a));
@@ -126,6 +160,13 @@ export default function App() {
     });
     if (selectedArticle && selectedArticle.id === updatedArticle.id) {
       setSelectedArticle(updatedArticle);
+    }
+
+    // Save to Firestore
+    try {
+      await saveArticleToFirestore(updatedArticle);
+    } catch (e) {
+      console.warn('Firestore update failed, cached locally:', e);
     }
   };
 
@@ -141,7 +182,7 @@ export default function App() {
     setSelectedArticle(null);
   };
 
-  const handleDeleteArticle = (articleId: string) => {
+  const handleDeleteArticle = async (articleId: string) => {
     setAllArticles((prev) => {
       const defaultIds = new Set(ARTICLES_DATA.map(a => a.id));
       const updated = prev.filter((a) => a.id !== articleId);
@@ -155,6 +196,13 @@ export default function App() {
     });
     if (selectedArticle && selectedArticle.id === articleId) {
       setSelectedArticle(null);
+    }
+
+    // Delete from Firestore
+    try {
+      await deleteArticleFromFirestore(articleId);
+    } catch (e) {
+      console.warn('Firestore delete failed, cached locally:', e);
     }
   };
 

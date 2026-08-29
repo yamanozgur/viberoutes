@@ -1,6 +1,21 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Article, MainCategory, SubCategory, HomeSection, HotelFeature } from '../types';
 import { parseDocxFile, ParsedDocxResult } from '../utils/docxImporter';
+import {
+  loginEditor,
+  logoutEditor,
+  onAuthStatusChange,
+  logEditorialAction,
+  subscribeToEditorialLogs,
+  createEditorByAdmin,
+  deleteEditorUser,
+  subscribeToEditors,
+  EditorUser,
+  SUPER_ADMIN_EMAIL,
+  getCurrentUserRole,
+  EditorialLog,
+} from '../lib/firestoreService';
+import { User as FirebaseUser } from 'firebase/auth';
 import {
   FileText,
   Upload,
@@ -16,6 +31,7 @@ import {
   ArrowRight,
   RefreshCw,
   Eye,
+  EyeOff,
   AlertCircle,
   Edit3,
   RotateCcw,
@@ -24,7 +40,15 @@ import {
   CheckCircle2,
   Clock,
   Building2,
-  Star
+  Star,
+  Lock,
+  LogOut,
+  Database,
+  ShieldCheck,
+  Users,
+  Shield,
+  UserPlus,
+  KeyRound,
 } from 'lucide-react';
 
 interface AdminPanelProps {
@@ -42,7 +66,7 @@ interface AdminPanelProps {
 interface ActionLog {
   id: string;
   time: string;
-  type: 'upload' | 'edit' | 'publish' | 'delete' | 'photo';
+  type: 'upload' | 'edit' | 'publish' | 'delete' | 'photo' | 'auth';
   message: string;
 }
 
@@ -92,20 +116,63 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onSelectArticle,
   initialTab = 'upload',
 }) => {
-  const [activeTab, setActiveTab] = useState<'upload' | 'editor' | 'articles' | 'history'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'upload' | 'editor' | 'articles' | 'history' | 'team'>(initialTab as any);
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
+  // Firebase Auth State
+  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
+  const [userRole, setUserRole] = useState<'admin' | 'editor' | 'author'>('editor');
+  const [authIdentifier, setAuthIdentifier] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Editor Team Management State (Admin only)
+  const [editorsList, setEditorsList] = useState<EditorUser[]>([]);
+  const [newEditorName, setNewEditorName] = useState('');
+  const [newEditorIdentifier, setNewEditorIdentifier] = useState('');
+  const [newEditorPassword, setNewEditorPassword] = useState('');
+  const [newEditorRole, setNewEditorRole] = useState<'editor' | 'author'>('editor');
+  const [isAddingEditor, setIsAddingEditor] = useState(false);
+  const [editorAddError, setEditorAddError] = useState('');
+  const [editorAddSuccess, setEditorAddSuccess] = useState('');
+  const [deleteConfirmUid, setDeleteConfirmUid] = useState<string | null>(null);
+
+  const isSuperAdmin = currentUser?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase() || userRole === 'admin';
+
+  useEffect(() => {
+    const unsubscribe = onAuthStatusChange(async (user) => {
+      setCurrentUser(user);
+      if (user) {
+        const role = await getCurrentUserRole(user);
+        setUserRole(role);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Sync real-time editor list
+  useEffect(() => {
+    if (currentUser) {
+      const unsubEditors = subscribeToEditors((list) => {
+        setEditorsList(list);
+      });
+      return () => unsubEditors();
+    }
+  }, [currentUser]);
+
   React.useEffect(() => {
     if (isOpen && initialTab) {
-      setActiveTab(initialTab);
+      setActiveTab(initialTab as any);
     }
   }, [isOpen, initialTab]);
   
-  // Action History Logs with LocalStorage persistence
-  const [historyFilter, setHistoryFilter] = useState<'all' | 'upload' | 'edit' | 'publish' | 'delete' | 'photo'>('all');
+  // Action History Logs with LocalStorage & Firestore real-time synchronization
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'upload' | 'edit' | 'publish' | 'delete' | 'photo' | 'auth'>('all');
   const [actionHistory, setActionHistory] = useState<ActionLog[]>(() => {
     try {
       const saved = localStorage.getItem('viberoutes_action_history');
@@ -121,16 +188,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         id: 'log-init-1',
         time: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
         type: 'publish',
-        message: 'Editoryal sistem aktif. Bilgisayardan Word (.docx) ve fotoğraf yükleme modülü hazır.'
-      },
-      {
-        id: 'log-init-2',
-        time: '05:30:12',
-        type: 'photo',
-        message: 'Fotoğraf optimizasyon motoru ve kırpma hazır.'
+        message: 'Cloud Firestore "viberoutes" veritabanı aktif. Editoryal yönetim modülü hazır.'
       }
     ];
   });
+
+  // Sync real-time logs from Firestore
+  useEffect(() => {
+    const unsubLogs = subscribeToEditorialLogs((logs) => {
+      if (logs && logs.length > 0) {
+        setActionHistory(logs);
+      }
+    });
+    return () => unsubLogs();
+  }, []);
 
   const addLog = (type: ActionLog['type'], message: string) => {
     const newLog: ActionLog = {
@@ -148,6 +219,104 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       }
       return updated;
     });
+
+    // Write audit log to Firestore in the cloud
+    logEditorialAction(type, message, currentUser?.email || undefined);
+  };
+
+  const handleAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!authIdentifier.trim() || !authPassword.trim()) {
+      setAuthError('Lütfen kullanıcı adı / e-posta ve şifrenizi girin.');
+      return;
+    }
+
+    setIsAuthSubmitting(true);
+    setAuthError('');
+
+    try {
+      await loginEditor(authIdentifier, authPassword);
+      setSuccessMessage('Giriş başarılı! Hoş geldiniz.');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err: any) {
+      console.error('Auth error:', err);
+      if (
+        err.code === 'auth/invalid-credential' ||
+        err.code === 'auth/user-not-found' ||
+        err.code === 'auth/wrong-password' ||
+        err.code === 'auth/invalid-email'
+      ) {
+        setAuthError('Kullanıcı adı / e-posta veya şifre hatalı. Lütfen kontrol edin.');
+      } else {
+        setAuthError(err.message || 'Giriş yapılamadı. Lütfen bilgilerinizi kontrol edin.');
+      }
+    } finally {
+      setIsAuthSubmitting(false);
+    }
+  };
+
+  const handleAddEditor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEditorIdentifier.trim() || !newEditorPassword.trim()) {
+      setEditorAddError('Lütfen kullanıcı adı / e-posta ve şifre belirleyin.');
+      return;
+    }
+    if (newEditorPassword.length < 6) {
+      setEditorAddError('Şifre en az 6 karakter olmalıdır.');
+      return;
+    }
+
+    setIsAddingEditor(true);
+    setEditorAddError('');
+    setEditorAddSuccess('');
+
+    try {
+      await createEditorByAdmin(
+        newEditorIdentifier,
+        newEditorPassword,
+        newEditorName || newEditorIdentifier,
+        newEditorRole
+      );
+      setEditorAddSuccess(`Editör (${newEditorIdentifier}) başarıyla eklendi ve yetkilendirildi!`);
+      setNewEditorName('');
+      setNewEditorIdentifier('');
+      setNewEditorPassword('');
+      addLog('auth', `Yönetici yeni editör oluşturdu: ${newEditorIdentifier}`);
+      setTimeout(() => setEditorAddSuccess(''), 4000);
+    } catch (err: any) {
+      console.error('Add editor error:', err);
+      if (err.code === 'auth/email-already-in-use') {
+        setEditorAddError('Bu kullanıcı adı / e-posta ile zaten kayıtlı bir editör var.');
+      } else {
+        setEditorAddError(err.message || 'Editör eklenemedi.');
+      }
+    } finally {
+      setIsAddingEditor(false);
+    }
+  };
+
+  const handleDeleteEditor = async (uid: string, email: string) => {
+    try {
+      await deleteEditorUser(uid, email);
+      setSuccessMessage(`${email} editör yetkisi kaldırıldı.`);
+      setDeleteConfirmUid(null);
+      addLog('auth', `Editör hesabı kaldırıldı: ${email}`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err: any) {
+      console.error('Delete editor error:', err);
+      setErrorMessage(err.message || 'Editör silinemedi.');
+      setTimeout(() => setErrorMessage(''), 3000);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logoutEditor();
+      setSuccessMessage('Oturum kapatıldı.');
+      setTimeout(() => setSuccessMessage(''), 2000);
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
   };
 
   const clearHistory = () => {
@@ -510,80 +679,120 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       <div className="bg-[#FAF8F5] border border-[#E5E0D8] w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] text-[#2D2924]">
         
         {/* Header */}
-        <div className="p-5 sm:p-6 bg-[#FFFFFF] border-b border-[#E8E3DA] flex items-center justify-between">
+        <div className="p-5 sm:p-6 bg-[#FFFFFF] border-b border-[#E8E3DA] flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center space-x-3.5">
             <div className="w-10 h-10 rounded-full bg-[#FAF6F0] border border-[#D8D2C7] flex items-center justify-center">
               <FileText className="w-5 h-5 text-[#9E7B54]" />
             </div>
             <div>
-              <span className="text-[11px] font-ui uppercase tracking-[0.25em] text-[#8C827A] block font-semibold">
-                EDITORIAL DESK
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-ui uppercase tracking-[0.25em] text-[#8C827A] block font-semibold">
+                  EDITORIAL DESK
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-ui bg-[#FAF8F5] text-[#665E54] border border-[#DCD5C9] font-medium">
+                  <Database className="w-3 h-3 text-[#9E7B54]" />
+                  <span>viberoutes</span>
+                </span>
+              </div>
               <h3 className="font-display text-2xl font-light text-[#1A1814]">
-                {editingArticleId ? 'Yazıyı ve Fotoğrafı Düzenle' : 'Yazı Yükleme & Editoryal Yönetim'}
+                {currentUser ? (editingArticleId ? 'Yazıyı ve Fotoğrafı Düzenle' : 'Yazı Yükleme & Editoryal Yönetim') : 'Editör Giriş Portalı'}
               </h3>
             </div>
           </div>
 
           {/* Navigation Tabs */}
           <div className="flex items-center space-x-3">
-            <div className="flex bg-[#EFEAE2] p-1 border border-[#DCD5C9]">
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingArticleId(null);
-                  setActiveTab('upload');
-                }}
-                className={`px-3 py-1.5 text-xs font-ui transition-all cursor-pointer font-medium flex items-center gap-1.5 ${
-                  activeTab === 'upload'
-                    ? 'bg-[#FFFFFF] text-[#1A1814] shadow-xs'
-                    : 'text-[#767064] hover:text-[#1A1814]'
-                }`}
-              >
-                <Upload className="w-3.5 h-3.5 text-[#9E7B54]" />
-                <span>Word Yükle</span>
-              </button>
+            {currentUser ? (
+              <>
+                <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 bg-[#FAF8F5] border border-[#E5E0D8] text-[11px] font-ui text-[#524B43]">
+                  <User className="w-3.5 h-3.5 text-[#9E7B54]" />
+                  <span className="font-semibold text-[#1A1814] truncate max-w-[150px]">
+                    {currentUser.displayName || currentUser.email?.split('@')[0]}
+                  </span>
+                </div>
 
-              <button
-                type="button"
-                onClick={() => setActiveTab('editor')}
-                className={`px-3 py-1.5 text-xs font-ui transition-all cursor-pointer font-medium flex items-center gap-1.5 ${
-                  activeTab === 'editor'
-                    ? 'bg-[#FFFFFF] text-[#1A1814] shadow-xs'
-                    : 'text-[#767064] hover:text-[#1A1814]'
-                }`}
-              >
-                <Edit3 className="w-3.5 h-3.5 text-[#9E7B54]" />
-                <span>{editingArticleId ? 'Düzenle' : 'Yazı Editörü'}</span>
-              </button>
+                <div className="flex bg-[#EFEAE2] p-1 border border-[#DCD5C9] overflow-x-auto max-w-full">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingArticleId(null);
+                      setActiveTab('upload');
+                    }}
+                    className={`px-3 py-1.5 text-xs font-ui transition-all cursor-pointer font-medium flex items-center gap-1.5 whitespace-nowrap ${
+                      activeTab === 'upload'
+                        ? 'bg-[#FFFFFF] text-[#1A1814] shadow-xs'
+                        : 'text-[#767064] hover:text-[#1A1814]'
+                    }`}
+                  >
+                    <Upload className="w-3.5 h-3.5 text-[#9E7B54]" />
+                    <span>Word Yükle</span>
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => setActiveTab('articles')}
-                className={`px-3 py-1.5 text-xs font-ui transition-all cursor-pointer font-medium flex items-center gap-1.5 ${
-                  activeTab === 'articles'
-                    ? 'bg-[#FFFFFF] text-[#1A1814] shadow-xs'
-                    : 'text-[#767064] hover:text-[#1A1814]'
-                }`}
-              >
-                <BookOpen className="w-3.5 h-3.5" />
-                <span>Yayındaki Yazılar ({articles.length})</span>
-              </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('editor')}
+                    className={`px-3 py-1.5 text-xs font-ui transition-all cursor-pointer font-medium flex items-center gap-1.5 whitespace-nowrap ${
+                      activeTab === 'editor'
+                        ? 'bg-[#FFFFFF] text-[#1A1814] shadow-xs'
+                        : 'text-[#767064] hover:text-[#1A1814]'
+                    }`}
+                  >
+                    <Edit3 className="w-3.5 h-3.5 text-[#9E7B54]" />
+                    <span>{editingArticleId ? 'Düzenle' : 'Yazı Editörü'}</span>
+                  </button>
 
-              {/* ACTION HISTORY TAB */}
-              <button
-                type="button"
-                onClick={() => setActiveTab('history')}
-                className={`px-3 py-1.5 text-xs font-ui transition-all cursor-pointer font-medium flex items-center gap-1.5 ${
-                  activeTab === 'history'
-                    ? 'bg-[#FFFFFF] text-[#1A1814] shadow-xs'
-                    : 'text-[#767064] hover:text-[#1A1814]'
-                }`}
-              >
-                <Activity className="w-3.5 h-3.5 text-[#9E7B54]" />
-                <span>İşlem Geçmişi ({actionHistory.length})</span>
-              </button>
-            </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('articles')}
+                    className={`px-3 py-1.5 text-xs font-ui transition-all cursor-pointer font-medium flex items-center gap-1.5 whitespace-nowrap ${
+                      activeTab === 'articles'
+                        ? 'bg-[#FFFFFF] text-[#1A1814] shadow-xs'
+                        : 'text-[#767064] hover:text-[#1A1814]'
+                    }`}
+                  >
+                    <BookOpen className="w-3.5 h-3.5" />
+                    <span>Yayındaki Yazılar ({articles.length})</span>
+                  </button>
+
+                  {/* EDITORS & TEAM MANAGEMENT TAB */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('team')}
+                    className={`px-3 py-1.5 text-xs font-ui transition-all cursor-pointer font-medium flex items-center gap-1.5 whitespace-nowrap ${
+                      activeTab === 'team'
+                        ? 'bg-[#FFFFFF] text-[#1A1814] shadow-xs'
+                        : 'text-[#767064] hover:text-[#1A1814]'
+                    }`}
+                  >
+                    <Users className="w-3.5 h-3.5 text-[#9E7B54]" />
+                    <span>Editörler ({editorsList.length > 0 ? editorsList.length : 1})</span>
+                  </button>
+
+                  {/* ACTION HISTORY TAB */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('history')}
+                    className={`px-3 py-1.5 text-xs font-ui transition-all cursor-pointer font-medium flex items-center gap-1.5 whitespace-nowrap ${
+                      activeTab === 'history'
+                        ? 'bg-[#FFFFFF] text-[#1A1814] shadow-xs'
+                        : 'text-[#767064] hover:text-[#1A1814]'
+                    }`}
+                  >
+                    <Activity className="w-3.5 h-3.5 text-[#9E7B54]" />
+                    <span>İşlem Geçmişi ({actionHistory.length})</span>
+                  </button>
+                </div>
+
+                <button
+                  onClick={handleLogout}
+                  title="Oturumu Kapat"
+                  className="px-2.5 py-1.5 text-xs font-ui text-[#767064] hover:text-[#9B1C1C] hover:bg-[#FDF2F2] border border-[#DCD5C9] rounded-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Çıkış</span>
+                </button>
+              </>
+            ) : null}
 
             <button
               onClick={onClose}
@@ -610,8 +819,103 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </div>
           )}
 
-          {/* TAB 1: WORD UPLOAD */}
-          {activeTab === 'upload' && (
+          {/* AUTHENTICATION GATE: Shown when editor is not logged in */}
+          {!currentUser ? (
+            <div className="max-w-md mx-auto my-6 bg-[#FFFFFF] border border-[#E5E0D8] p-7 sm:p-8 shadow-xs space-y-5">
+              <div className="text-center space-y-1.5">
+                <div className="w-12 h-12 rounded-full bg-[#FAF6F0] border border-[#D8D2C7] flex items-center justify-center mx-auto text-[#9E7B54]">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <h4 className="font-display text-xl text-[#1A1814]">
+                  Editör & Yönetici Girişi
+                </h4>
+                <p className="text-xs font-ui text-[#767064] leading-relaxed">
+                  Vibe Routes editoryal paneline erişmek, içerik yüklemek ve <strong className="text-[#1A1814] font-medium">"viberoutes"</strong> bulut veritabanını yönetmek için giriş yapın.
+                </p>
+              </div>
+
+              {authError && (
+                <div className="p-3 bg-[#FDF2F2] border border-[#F8B4B4] text-xs font-ui text-[#9B1C1C] flex items-start gap-2 rounded-xs">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{authError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleAuthSubmit} className="space-y-3.5">
+                <div>
+                  <label className="text-[11px] font-ui uppercase tracking-wider font-semibold text-[#4A453E] block mb-1">
+                    Kullanıcı Adı veya E-posta
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="yamanozgur veya editör e-postanız"
+                    value={authIdentifier}
+                    onChange={(e) => setAuthIdentifier(e.target.value)}
+                    className="w-full bg-[#FAF8F5] border border-[#D5CFC5] px-3 py-2 text-xs font-ui text-[#1A1814] focus:bg-[#FFFFFF] focus:outline-hidden focus:border-[#9E7B54]"
+                  />
+                  <span className="text-[10px] font-ui text-[#8C827A] mt-1 block">
+                    Örn: <strong className="text-[#5C554D]">yamanozgur@gmail.com</strong> veya <strong className="text-[#5C554D]">yamanozgur</strong>
+                  </span>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-ui uppercase tracking-wider font-semibold text-[#4A453E] block mb-1">
+                    Şifre
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      placeholder="Şifrenizi girin"
+                      value={authPassword}
+                      onChange={(e) => setAuthPassword(e.target.value)}
+                      className="w-full bg-[#FAF8F5] border border-[#D5CFC5] px-3 py-2 text-xs font-ui text-[#1A1814] focus:bg-[#FFFFFF] focus:outline-hidden focus:border-[#9E7B54] pr-9"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8C827A] hover:text-[#1A1814] cursor-pointer"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isAuthSubmitting}
+                  className="w-full py-2.5 bg-[#1A1814] hover:bg-[#9E7B54] text-[#FFFFFF] text-xs font-ui uppercase tracking-widest font-semibold transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-xs disabled:opacity-50 mt-2"
+                >
+                  {isAuthSubmitting ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Giriş Yapılıyor...</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>Panele Giriş Yap</span>
+                    </>
+                  )}
+                </button>
+              </form>
+
+              {/* Security info banner */}
+              <div className="pt-3 text-center border-t border-[#EAE4DC] space-y-1 text-[11px] font-ui text-[#767064]">
+                <div className="flex items-center justify-center gap-1.5 text-[#5C554D] font-medium">
+                  <Shield className="w-3.5 h-3.5 text-[#9E7B54]" />
+                  <span>Yetkili Erişim Koruması</span>
+                </div>
+                <p className="text-[10px] text-[#8C827A] leading-normal">
+                  Yeni editör tanımlamaları güvenlik amacıyla yalnızca Ana Yönetici tarafından panel içerisinden yapılabilir.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* TAB 1: WORD UPLOAD */}
+              {activeTab === 'upload' && (
             <div className="space-y-6">
               <div
                 onDragOver={handleDragOver}
@@ -1271,6 +1575,240 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </div>
             );
           })()}
+
+          {/* TAB 5: EDITORS & TEAM MANAGEMENT */}
+          {activeTab === 'team' && (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-[#E5E0D8]">
+                    <div>
+                      <h4 className="font-display text-xl text-[#1A1814] flex items-center gap-2">
+                        <Users className="w-5 h-5 text-[#9E7B54]" />
+                        <span>Editör & Yazar Ekibi Yönetimi</span>
+                      </h4>
+                      <p className="text-xs font-ui text-[#767064] mt-0.5">
+                        Vibe Routes editoryal paneline erişebilecek editörleri tanımlayın veya yetkilerini kaldırın.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-ui bg-[#FAF6F0] text-[#9E7B54] px-2.5 py-1 border border-[#E5DFD5] font-semibold flex items-center gap-1.5">
+                        <Shield className="w-3.5 h-3.5" />
+                        <span>Yönetici: {isSuperAdmin ? 'Özgür Yaman (Tam Yetkili)' : 'Editör'}</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Add New Editor Form */}
+                  <div className="bg-[#FFFFFF] border border-[#E5E0D8] p-5 sm:p-6 shadow-xs space-y-4">
+                    <div className="flex items-center gap-2 pb-2 border-b border-[#EFEAE2]">
+                      <UserPlus className="w-4 h-4 text-[#9E7B54]" />
+                      <h5 className="font-display text-base text-[#1A1814] font-medium">
+                        Yeni Editör Tanımla
+                      </h5>
+                    </div>
+
+                    {editorAddError && (
+                      <div className="p-3 bg-[#FDF2F2] border border-[#F8B4B4] text-xs font-ui text-[#9B1C1C] flex items-start gap-2 rounded-xs">
+                        <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                        <span>{editorAddError}</span>
+                      </div>
+                    )}
+
+                    {editorAddSuccess && (
+                      <div className="p-3 bg-[#F2F7F2] border border-[#B7DDB7] text-xs font-ui text-[#1E4620] flex items-start gap-2 rounded-xs">
+                        <Check className="w-4 h-4 shrink-0 mt-0.5 text-[#2E7D32]" />
+                        <span>{editorAddSuccess}</span>
+                      </div>
+                    )}
+
+                    <form onSubmit={handleAddEditor} className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-[11px] font-ui uppercase tracking-wider font-semibold text-[#4A453E] block mb-1">
+                            Editör Adı Soyadı
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="Örn: Ahmet Yılmaz"
+                            value={newEditorName}
+                            onChange={(e) => setNewEditorName(e.target.value)}
+                            className="w-full bg-[#FAF8F5] border border-[#D5CFC5] px-3 py-2 text-xs font-ui text-[#1A1814] focus:bg-[#FFFFFF] focus:outline-hidden focus:border-[#9E7B54]"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-ui uppercase tracking-wider font-semibold text-[#4A453E] block mb-1">
+                            Kullanıcı Adı veya E-posta
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="Örn: ahmetyilmaz veya ahmet@gmail.com"
+                            value={newEditorIdentifier}
+                            onChange={(e) => setNewEditorIdentifier(e.target.value)}
+                            className="w-full bg-[#FAF8F5] border border-[#D5CFC5] px-3 py-2 text-xs font-ui text-[#1A1814] focus:bg-[#FFFFFF] focus:outline-hidden focus:border-[#9E7B54]"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-[11px] font-ui uppercase tracking-wider font-semibold text-[#4A453E] block mb-1">
+                            Giriş Şifresi
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="En az 6 karakter (Örn: vibe2026)"
+                            value={newEditorPassword}
+                            onChange={(e) => setNewEditorPassword(e.target.value)}
+                            className="w-full bg-[#FAF8F5] border border-[#D5CFC5] px-3 py-2 text-xs font-ui text-[#1A1814] focus:bg-[#FFFFFF] focus:outline-hidden focus:border-[#9E7B54]"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-ui uppercase tracking-wider font-semibold text-[#4A453E] block mb-1">
+                            Yetki / Rol
+                          </label>
+                          <select
+                            value={newEditorRole}
+                            onChange={(e) => setNewEditorRole(e.target.value as any)}
+                            className="w-full bg-[#FAF8F5] border border-[#D5CFC5] px-3 py-2 text-xs font-ui text-[#1A1814] focus:bg-[#FFFFFF] focus:outline-hidden focus:border-[#9E7B54]"
+                          >
+                            <option value="editor">Editör (Yazı Yükleme, Düzenleme ve Yayına Alma)</option>
+                            <option value="author">Yazar (Taslak Oluşturma ve Hazırlama)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 flex justify-end">
+                        <button
+                          type="submit"
+                          disabled={isAddingEditor}
+                          className="px-5 py-2 bg-[#1A1814] hover:bg-[#9E7B54] text-[#FFFFFF] text-xs font-ui uppercase tracking-widest font-semibold transition-colors cursor-pointer flex items-center gap-2 shadow-xs disabled:opacity-50"
+                        >
+                          {isAddingEditor ? (
+                            <>
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                              <span>Hesap Oluşturuluyor...</span>
+                            </>
+                          ) : (
+                            <>
+                              <UserPlus className="w-3.5 h-3.5" />
+                              <span>Editör Hesabını Oluştur</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+
+                  {/* Registered Team / Editors List */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h5 className="font-display text-base text-[#1A1814] font-medium flex items-center gap-2">
+                        <span>Yetkili Editör Kadrosu</span>
+                        <span className="text-xs font-ui text-[#8C827A] font-normal">
+                          ({editorsList.length > 0 ? editorsList.length : 1} Kullanıcı)
+                        </span>
+                      </h5>
+                    </div>
+
+                    <div className="bg-[#FFFFFF] border border-[#E5E0D8] divide-y divide-[#EFEAE2] shadow-xs">
+                      {/* Super Admin Row (Always visible and protected) */}
+                      <div className="p-4 flex items-center justify-between flex-wrap gap-3 bg-[#FAF8F5]">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 rounded-full bg-[#1A1814] text-[#FAF8F5] flex items-center justify-center font-display font-medium text-sm">
+                            ÖY
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-ui font-semibold text-sm text-[#1A1814]">
+                                Özgür Yaman
+                              </span>
+                              <span className="px-2 py-0.5 text-[10px] font-ui bg-[#FAF6F0] text-[#9E7B54] border border-[#E5DFD5] font-semibold rounded-xs flex items-center gap-1">
+                                <Shield className="w-3 h-3" />
+                                <span>Ana Yönetici (Super Admin)</span>
+                              </span>
+                            </div>
+                            <div className="text-xs font-ui text-[#767064] mt-0.5">
+                              yamanozgur@gmail.com • Sistem Sahibi
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-xs font-ui text-[#8C827A]">
+                          <Lock className="w-3.5 h-3.5 text-[#9E7B54]" />
+                          <span>Korumalı Yönetici Hesabı</span>
+                        </div>
+                      </div>
+
+                      {/* Custom Added Editors */}
+                      {editorsList
+                        .filter((ed) => ed.email.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase())
+                        .map((editor) => (
+                          <div
+                            key={editor.uid}
+                            className="p-4 flex items-center justify-between flex-wrap gap-3 hover:bg-[#FAF8F5] transition-colors"
+                          >
+                            <div className="flex items-center space-x-3">
+                              <div className="w-10 h-10 rounded-full bg-[#FAF6F0] border border-[#D8D2C7] text-[#9E7B54] flex items-center justify-center font-display font-medium text-sm">
+                                {editor.displayName.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-ui font-medium text-sm text-[#1A1814]">
+                                    {editor.displayName}
+                                  </span>
+                                  <span className="px-2 py-0.5 text-[10px] font-ui bg-[#FFFFFF] text-[#5C554D] border border-[#DCD5C9] font-medium rounded-xs capitalize">
+                                    {editor.role === 'author' ? 'Yazar' : 'Editör'}
+                                  </span>
+                                </div>
+                                <div className="text-xs font-ui text-[#767064] mt-0.5">
+                                  {editor.email}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                              {deleteConfirmUid === editor.uid ? (
+                                <div className="flex items-center gap-1.5 bg-[#FDF2F2] p-1.5 border border-[#F8B4B4] rounded-xs">
+                                  <span className="text-[11px] font-ui text-[#9B1C1C] mr-1">Silinsin mi?</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteEditor(editor.uid, editor.email)}
+                                    className="px-2 py-0.5 bg-[#DC2626] text-white text-[11px] font-ui font-semibold rounded-2xs cursor-pointer hover:bg-[#B91C1C]"
+                                  >
+                                    Evet, Kaldır
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDeleteConfirmUid(null)}
+                                    className="px-2 py-0.5 bg-[#FFFFFF] text-[#5C554D] border border-[#D5CFC5] text-[11px] font-ui font-medium rounded-2xs cursor-pointer hover:bg-[#F3F4F6]"
+                                  >
+                                    İptal
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setDeleteConfirmUid(editor.uid)}
+                                  className="px-2.5 py-1.5 text-xs font-ui text-[#767064] hover:text-[#DC2626] hover:bg-[#FDF2F2] border border-[#E5E0D8] hover:border-[#F8B4B4] rounded-xs transition-colors cursor-pointer flex items-center gap-1"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <span>Yetkiyi Kaldır</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
 

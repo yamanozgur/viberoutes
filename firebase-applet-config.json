@@ -3,6 +3,7 @@
   "appId": "1:157679457512:web:b3a113f1f1e93113b5655d",
   "apiKey": "AIzaSyCENMx5MfQHqPvFH5vtDHar2C3GCYnu-O8",
   "authDomain": "gen-lang-client-0617011740.firebaseapp.com",
+  "firestoreDatabaseId": "viberoutes",
   "storageBucket": "gen-lang-client-0617011740.firebasestorage.app",
   "messagingSenderId": "157679457512",
   "measurementId": "",
