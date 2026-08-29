@@ -120,11 +120,64 @@ export const saveArticleToFirestore = async (article: Article): Promise<void> =>
 };
 
 /**
- * Delete an article from Firestore
+ * Delete an article from Firestore and mark in deleted registry
  */
 export const deleteArticleFromFirestore = async (articleId: string): Promise<void> => {
-  const articleDoc = doc(db, 'articles', articleId);
-  await deleteDoc(articleDoc);
+  try {
+    const articleDoc = doc(db, 'articles', articleId);
+    await deleteDoc(articleDoc);
+  } catch (err) {
+    console.warn('Firestore delete doc warning:', err);
+  }
+
+  try {
+    const deletedDoc = doc(db, 'deleted_articles', articleId);
+    await setDoc(deletedDoc, {
+      id: articleId,
+      deletedAt: new Date().toISOString(),
+      deletedBy: auth.currentUser?.email || SUPER_ADMIN_EMAIL,
+    });
+  } catch (err) {
+    console.warn('Firestore mark deleted warning:', err);
+  }
+};
+
+/**
+ * Clear all articles from Firestore
+ */
+export const clearAllArticlesFromFirestore = async (allCurrentIds: string[]): Promise<void> => {
+  try {
+    const articlesCol = collection(db, 'articles');
+    const snapshot = await getDocs(articlesCol);
+    const deletePromises = snapshot.docs.map((d) => deleteDoc(d.ref));
+    await Promise.all(deletePromises);
+
+    // Also mark all current IDs as deleted so defaults never resurrect
+    for (const id of allCurrentIds) {
+      const deletedDoc = doc(db, 'deleted_articles', id);
+      await setDoc(deletedDoc, {
+        id,
+        deletedAt: new Date().toISOString(),
+        deletedBy: auth.currentUser?.email || SUPER_ADMIN_EMAIL,
+      });
+    }
+  } catch (err) {
+    console.warn('Firestore clear all error:', err);
+  }
+};
+
+/**
+ * Subscribe to deleted article IDs from Firestore
+ */
+export const subscribeToDeletedArticleIds = (callback: (deletedIds: Set<string>) => void) => {
+  const deletedCol = collection(db, 'deleted_articles');
+  return onSnapshot(deletedCol, (snapshot) => {
+    const ids = new Set<string>();
+    snapshot.forEach((d) => ids.add(d.id));
+    callback(ids);
+  }, (err) => {
+    console.warn('Deleted articles subscription warning:', err);
+  });
 };
 
 /**

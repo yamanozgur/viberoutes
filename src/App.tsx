@@ -3,8 +3,10 @@ import { ARTICLES_DATA } from './data/articles';
 import { Article, MainCategory, SubCategory, HotelFeature, ListItem, GearItem } from './types';
 import {
   subscribeToArticles,
+  subscribeToDeletedArticleIds,
   saveArticleToFirestore,
   deleteArticleFromFirestore,
+  clearAllArticlesFromFirestore,
 } from './lib/firestoreService';
 import { Navbar } from './components/Navbar';
 import { HeroFeatured } from './components/HeroFeatured';
@@ -24,47 +26,82 @@ import { Footer } from './components/Footer';
 import { BookOpen, Sparkles, Compass, ArrowRight, ShieldCheck, Filter, SlidersHorizontal, Check, FolderDown } from 'lucide-react';
 
 export default function App() {
+  // Track deleted article IDs to prevent deleted default articles from resurfacing
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('viberoutes_deleted_ids');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
   // Articles state initialized with hardcoded and imported articles from localStorage
   const [allArticles, setAllArticles] = useState<Article[]>(() => {
     try {
+      const savedDeleted = localStorage.getItem('viberoutes_deleted_ids');
+      const delSet = savedDeleted ? new Set<string>(JSON.parse(savedDeleted)) : new Set<string>();
+
       const savedCustom = localStorage.getItem('viberoutes_custom_articles') || 
                           localStorage.getItem('viberoutes_imported_articles') ||
                           localStorage.getItem('vibe_custom_articles');
       if (savedCustom) {
         const parsed = JSON.parse(savedCustom);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Merge custom articles on top of default data without duplicates
           const defaultIds = new Set(ARTICLES_DATA.map(a => a.id));
-          const customFiltered = parsed.filter(a => !defaultIds.has(a.id));
-          return [...customFiltered, ...ARTICLES_DATA];
+          const customFiltered = parsed.filter(a => !defaultIds.has(a.id) && !delSet.has(a.id));
+          const nonDeletedDefaults = ARTICLES_DATA.filter(a => !delSet.has(a.id));
+          return [...customFiltered, ...nonDeletedDefaults];
         }
       }
+      return ARTICLES_DATA.filter(a => !delSet.has(a.id));
     } catch {
-      // ignore
+      return ARTICLES_DATA;
     }
-    return ARTICLES_DATA;
   });
 
-  // Real-time synchronization with Firebase Firestore "viberoutes" database
+  // Real-time synchronization of deleted IDs with Firebase Firestore
+  useEffect(() => {
+    const unsubDeleted = subscribeToDeletedArticleIds((cloudDeletedIds) => {
+      setDeletedIds((prev) => {
+        const merged = new Set([...Array.from(prev), ...Array.from(cloudDeletedIds)]);
+        try {
+          localStorage.setItem('viberoutes_deleted_ids', JSON.stringify(Array.from(merged)));
+        } catch {
+          // ignore
+        }
+        return merged;
+      });
+    });
+    return () => unsubDeleted();
+  }, []);
+
+  // Real-time synchronization of articles with Firebase Firestore "viberoutes" database
   useEffect(() => {
     const unsubscribe = subscribeToArticles((cloudArticles) => {
-      if (cloudArticles && cloudArticles.length > 0) {
-        setAllArticles((prev) => {
-          const cloudIds = new Set(cloudArticles.map((a) => a.id));
-          const nonCloudDefault = ARTICLES_DATA.filter((a) => !cloudIds.has(a.id));
-          const merged = [...cloudArticles, ...nonCloudDefault];
+      setAllArticles((prev) => {
+        const delSet = deletedIds;
+        if (cloudArticles && cloudArticles.length > 0) {
+          const activeCloud = cloudArticles.filter((a) => !delSet.has(a.id));
+          const cloudIds = new Set(activeCloud.map((a) => a.id));
+          const nonCloudDefault = ARTICLES_DATA.filter((a) => !cloudIds.has(a.id) && !delSet.has(a.id));
+          const merged = [...activeCloud, ...nonCloudDefault];
           try {
-            localStorage.setItem('viberoutes_custom_articles', JSON.stringify(cloudArticles));
+            localStorage.setItem('viberoutes_custom_articles', JSON.stringify(activeCloud));
           } catch {
             // ignore
           }
           return merged;
-        });
-      }
+        } else {
+          // If cloud has 0 articles (or all deleted)
+          const nonDeletedDefaults = ARTICLES_DATA.filter((a) => !delSet.has(a.id));
+          return nonDeletedDefaults;
+        }
+      });
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [deletedIds]);
 
   // Navigation & View States
   const [currentCategory, setCurrentCategory] = useState<MainCategory | 'all' | 'magazine' | 'routes' | 'videos'>('all');
@@ -170,7 +207,20 @@ export default function App() {
     }
   };
 
-  const handleClearAllArticles = () => {
+  const handleClearAllArticles = async () => {
+    const currentIds = allArticles.map((a) => a.id);
+    const allKnownIds = [...currentIds, ...ARTICLES_DATA.map((a) => a.id)];
+    
+    setDeletedIds((prev) => {
+      const merged = new Set([...Array.from(prev), ...allKnownIds]);
+      try {
+        localStorage.setItem('viberoutes_deleted_ids', JSON.stringify(Array.from(merged)));
+      } catch {
+        // ignore
+      }
+      return merged;
+    });
+
     setAllArticles([]);
     try {
       localStorage.removeItem('viberoutes_custom_articles');
@@ -180,15 +230,32 @@ export default function App() {
       console.warn('Could not clear cached articles:', e);
     }
     setSelectedArticle(null);
+
+    // Also clear from Firestore in cloud
+    try {
+      await clearAllArticlesFromFirestore(allKnownIds);
+    } catch (e) {
+      console.warn('Could not clear Firestore articles:', e);
+    }
   };
 
   const handleDeleteArticle = async (articleId: string) => {
+    // Add to deletedIds set immediately so default articles don't resurrect
+    setDeletedIds((prev) => {
+      const nextSet = new Set(prev);
+      nextSet.add(articleId);
+      try {
+        localStorage.setItem('viberoutes_deleted_ids', JSON.stringify(Array.from(nextSet)));
+      } catch {
+        // ignore
+      }
+      return nextSet;
+    });
+
     setAllArticles((prev) => {
-      const defaultIds = new Set(ARTICLES_DATA.map(a => a.id));
       const updated = prev.filter((a) => a.id !== articleId);
       try {
-        const customArticles = updated.filter((a) => !defaultIds.has(a.id));
-        localStorage.setItem('viberoutes_custom_articles', JSON.stringify(customArticles));
+        localStorage.setItem('viberoutes_custom_articles', JSON.stringify(updated));
       } catch (e) {
         console.warn('Could not update cached articles:', e);
       }

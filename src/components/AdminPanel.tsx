@@ -124,6 +124,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // Firebase Auth State
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [userRole, setUserRole] = useState<'admin' | 'editor' | 'author'>('editor');
   const [authIdentifier, setAuthIdentifier] = useState('');
   const [authPassword, setAuthPassword] = useState('');
@@ -141,12 +142,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [editorAddError, setEditorAddError] = useState('');
   const [editorAddSuccess, setEditorAddSuccess] = useState('');
   const [deleteConfirmUid, setDeleteConfirmUid] = useState<string | null>(null);
+  const [deleteConfirmArticleId, setDeleteConfirmArticleId] = useState<string | null>(null);
+  const [isConfirmingClearAll, setIsConfirmingClearAll] = useState(false);
 
   const isSuperAdmin = currentUser?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase() || userRole === 'admin';
 
   useEffect(() => {
     const unsubscribe = onAuthStatusChange(async (user) => {
       setCurrentUser(user);
+      setIsAuthChecking(false);
       if (user) {
         const role = await getCurrentUserRole(user);
         setUserRole(role);
@@ -819,8 +823,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </div>
           )}
 
-          {/* AUTHENTICATION GATE: Shown when editor is not logged in */}
-          {!currentUser ? (
+          {/* AUTH STATUS CHECKING SPINNER */}
+          {isAuthChecking ? (
+            <div className="max-w-md mx-auto my-12 text-center space-y-3 bg-[#FFFFFF] border border-[#E5E0D8] p-8">
+              <RefreshCw className="w-6 h-6 animate-spin text-[#9E7B54] mx-auto" />
+              <p className="text-xs font-ui text-[#767064]">Oturum ve editoryal yetkiler kontrol ediliyor...</p>
+            </div>
+          ) : !currentUser ? (
+            /* AUTHENTICATION GATE: Shown when editor is not logged in */
             <div className="max-w-md mx-auto my-6 bg-[#FFFFFF] border border-[#E5E0D8] p-7 sm:p-8 shadow-xs space-y-5">
               <div className="text-center space-y-1.5">
                 <div className="w-12 h-12 rounded-full bg-[#FAF6F0] border border-[#D8D2C7] flex items-center justify-center mx-auto text-[#9E7B54]">
@@ -914,6 +924,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </div>
           ) : (
             <>
+              {/* Active session bar */}
+              <div className="bg-[#FAF6F0] border border-[#E5DFD5] px-4 py-2 flex items-center justify-between flex-wrap gap-2 text-xs font-ui">
+                <div className="flex items-center gap-2 text-[#4A453E]">
+                  <span className="w-2 h-2 rounded-full bg-[#16A34A] inline-block" />
+                  <span>Giriş Yapıldı:</span>
+                  <strong className="text-[#1A1814] font-medium">
+                    {currentUser.displayName || currentUser.email}
+                  </strong>
+                  <span className="text-[10px] bg-[#EFEAE2] px-1.5 py-0.5 border border-[#D8D2C7] font-semibold text-[#8C6D46]">
+                    {isSuperAdmin ? 'Ana Yönetici' : userRole === 'editor' ? 'Editör' : 'Yazar'}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="text-xs text-[#9B1C1C] hover:text-[#DC2626] font-medium flex items-center gap-1 cursor-pointer underline underline-offset-2"
+                >
+                  <LogOut className="w-3 h-3" />
+                  <span>Oturumu Kapat (Giriş Ekranına Dön)</span>
+                </button>
+              </div>
               {/* TAB 1: WORD UPLOAD */}
               {activeTab === 'upload' && (
             <div className="space-y-6">
@@ -1328,27 +1360,46 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                 <span className="text-xs font-ui text-[#767064]">
-                  Toplam {articles.length} yayında yazı bulunuyor. İstediğiniz yazıyı düzenleyebilir veya fotoğrafını değiştirebilirsiniz.
+                  Toplam {articles.length} yayında yazı bulunuyor. İstediğiniz yazıyı düzenleyebilir, silebilir veya yeni yazı yükleyebilirsiniz.
                 </span>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   {onClearAllArticles && articles.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (window.confirm('Tüm yayındaki yazıları silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) {
-                          onClearAllArticles();
-                          addLog('delete', 'Tüm yayındaki yazılar temizlendi.');
-                          setSuccessMessage('Tüm yazılar başarıyla temizlendi.');
-                          setTimeout(() => setSuccessMessage(''), 2500);
-                        }
-                      }}
-                      className="px-3 py-1.5 bg-[#FDF2F2] hover:bg-[#FDE8E8] text-[#C0392B] border border-[#F8B4B4] text-xs font-ui flex items-center gap-1.5 cursor-pointer transition-colors"
-                      title="Tüm yazıları temizle"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>Tümünü Temizle</span>
-                    </button>
+                    isConfirmingClearAll ? (
+                      <div className="flex items-center gap-1.5 bg-[#FDF2F2] p-1 border border-[#F8B4B4] rounded-xs">
+                        <span className="text-[11px] font-ui text-[#9B1C1C] px-1 font-medium">Tüm yazılar silinsin mi?</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onClearAllArticles();
+                            addLog('delete', 'Tüm yayındaki yazılar temizlendi.');
+                            setSuccessMessage('Tüm yazılar başarıyla silindi ve veritabanı temizlendi.');
+                            setIsConfirmingClearAll(false);
+                            setTimeout(() => setSuccessMessage(''), 2500);
+                          }}
+                          className="px-2.5 py-1 bg-[#DC2626] text-white text-[11px] font-ui font-semibold rounded-2xs cursor-pointer hover:bg-[#B91C1C]"
+                        >
+                          Evet, Hepsini Sil
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsConfirmingClearAll(false)}
+                          className="px-2 py-1 bg-[#FFFFFF] text-[#5C554D] border border-[#D5CFC5] text-[11px] font-ui font-medium rounded-2xs cursor-pointer hover:bg-[#F3F4F6]"
+                        >
+                          Vazgeç
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setIsConfirmingClearAll(true)}
+                        className="px-3 py-1.5 bg-[#FDF2F2] hover:bg-[#FDE8E8] text-[#C0392B] border border-[#F8B4B4] text-xs font-ui flex items-center gap-1.5 cursor-pointer transition-colors"
+                        title="Tüm yazıları temizle"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Tümünü Temizle ({articles.length})</span>
+                      </button>
+                    )
                   )}
 
                   <button
@@ -1365,95 +1416,138 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </div>
               </div>
 
-              <div className="space-y-3">
-                {articles.map((art) => (
-                  <div
-                    key={art.id}
-                    className="p-4 bg-[#FFFFFF] border border-[#E5E0D8] flex items-center justify-between gap-4 shadow-2xs hover:border-[#9E7B54]/50 transition-colors"
+              {articles.length === 0 ? (
+                <div className="p-8 bg-[#FFFFFF] border border-dashed border-[#D8D2C7] text-center space-y-2">
+                  <BookOpen className="w-8 h-8 text-[#8C827A] mx-auto" />
+                  <h4 className="font-display text-base text-[#1A1814]">Yayında Henüz Yazı Yok</h4>
+                  <p className="text-xs font-ui text-[#767064]">
+                    Tüm yazılar silindi. Yeni bir Word belgesi yükleyerek veya boş editör ile ilk yazınızı ekleyebilirsiniz.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingArticleId(null);
+                      setActiveTab('upload');
+                    }}
+                    className="mt-2 px-4 py-2 bg-[#1A1814] hover:bg-[#9E7B54] text-white text-xs font-ui uppercase tracking-wider font-semibold cursor-pointer"
                   >
-                    <div className="flex items-center space-x-4 min-w-0">
-                      <div className="w-16 h-12 bg-[#EFEAE2] shrink-0 overflow-hidden border border-[#E5E0D8]">
-                        <img
-                          src={art.coverImage}
-                          alt={art.title}
-                          referrerPolicy="no-referrer"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = DEFAULT_COVER;
-                          }}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="min-w-0">
-                        <h4 className="font-display text-base font-medium text-[#1A1814] truncate">
-                          {art.title}
-                        </h4>
-                        <div className="flex items-center space-x-3 text-xs font-ui text-[#767064] mt-0.5">
-                          <span>{art.author.name}</span>
-                          <span>•</span>
-                          <span>{art.category}</span>
-                          <span>•</span>
-                          <span className={`px-1.5 py-0.2 text-[10px] uppercase font-semibold border ${
-                            art.homeSection === 'hero_cover' || (!art.homeSection && art.featured)
-                              ? 'bg-[#1A1814] text-[#FAF8F5] border-[#1A1814]'
-                              : art.homeSection === 'top_stories'
-                              ? 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]'
-                              : art.homeSection === 'editors_pick'
-                              ? 'bg-[#E0F2FE] text-[#075985] border-[#BAE6FD]'
-                              : 'bg-[#F3F4F6] text-[#4B5563] border-[#E5E7EB]'
-                          }`}>
-                            {art.homeSection === 'hero_cover' || (!art.homeSection && art.featured)
-                              ? 'Manşet'
-                              : art.homeSection === 'top_stories'
-                              ? 'Top Stories'
-                              : art.homeSection === 'editors_pick'
-                              ? 'Editor’s Pick'
-                              : 'Latest / Akış'}
-                          </span>
+                    Word Dosyası Yükle
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {articles.map((art) => (
+                    <div
+                      key={art.id}
+                      className="p-4 bg-[#FFFFFF] border border-[#E5E0D8] flex items-center justify-between gap-4 shadow-2xs hover:border-[#9E7B54]/50 transition-colors"
+                    >
+                      <div className="flex items-center space-x-4 min-w-0">
+                        <div className="w-16 h-12 bg-[#EFEAE2] shrink-0 overflow-hidden border border-[#E5E0D8]">
+                          <img
+                            src={art.coverImage}
+                            alt={art.title}
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = DEFAULT_COVER;
+                            }}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="font-display text-base font-medium text-[#1A1814] truncate">
+                            {art.title}
+                          </h4>
+                          <div className="flex items-center space-x-3 text-xs font-ui text-[#767064] mt-0.5 flex-wrap">
+                            <span>{art.author.name}</span>
+                            <span>•</span>
+                            <span>{art.category}</span>
+                            <span>•</span>
+                            <span className={`px-1.5 py-0.2 text-[10px] uppercase font-semibold border ${
+                              art.homeSection === 'hero_cover' || (!art.homeSection && art.featured)
+                                ? 'bg-[#1A1814] text-[#FAF8F5] border-[#1A1814]'
+                                : art.homeSection === 'top_stories'
+                                ? 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]'
+                                : art.homeSection === 'editors_pick'
+                                ? 'bg-[#E0F2FE] text-[#075985] border-[#BAE6FD]'
+                                : 'bg-[#F3F4F6] text-[#4B5563] border-[#E5E7EB]'
+                            }`}>
+                              {art.homeSection === 'hero_cover' || (!art.homeSection && art.featured)
+                                ? 'Manşet'
+                                : art.homeSection === 'top_stories'
+                                ? 'Top Stories'
+                                : art.homeSection === 'editors_pick'
+                                ? 'Editor’s Pick'
+                                : 'Latest / Akış'}
+                            </span>
+                          </div>
                         </div>
                       </div>
+
+                      <div className="flex items-center space-x-2 shrink-0">
+                        {/* EDIT BUTTON */}
+                        <button
+                          type="button"
+                          onClick={() => handleStartEdit(art)}
+                          className="px-3 py-1.5 text-xs font-ui bg-[#FAF6F0] hover:bg-[#9E7B54] text-[#1A1814] hover:text-[#FFFFFF] border border-[#D8D2C7] rounded-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                          title="Yazıyı ve Fotoğrafı Düzenle"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 text-[#9E7B54]" />
+                          <span>Düzenle</span>
+                        </button>
+
+                        {/* VIEW BUTTON */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onClose();
+                            onSelectArticle(art);
+                          }}
+                          className="p-2 text-[#767064] hover:text-[#1A1814] hover:bg-[#FAF6F0] rounded-xs transition-colors cursor-pointer"
+                          title="Yazıyı Oku"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+
+                        {/* DELETE BUTTON WITH INLINE CONFIRM */}
+                        {deleteConfirmArticleId === art.id ? (
+                          <div className="flex items-center gap-1 bg-[#FDF2F2] p-1 border border-[#F8B4B4] rounded-xs">
+                            <span className="text-[10px] font-ui text-[#9B1C1C] font-semibold">Silinsin mi?</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onDeleteArticle(art.id);
+                                addLog('delete', `Yazı silindi: "${art.title}"`);
+                                setDeleteConfirmArticleId(null);
+                                setSuccessMessage(`"${art.title}" silindi.`);
+                                setTimeout(() => setSuccessMessage(''), 2500);
+                              }}
+                              className="px-2 py-0.5 bg-[#DC2626] text-white text-[10px] font-ui font-semibold rounded-2xs cursor-pointer hover:bg-[#B91C1C]"
+                            >
+                              Evet
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteConfirmArticleId(null)}
+                              className="px-1.5 py-0.5 bg-[#FFFFFF] text-[#5C554D] border border-[#D5CFC5] text-[10px] font-ui rounded-2xs cursor-pointer"
+                            >
+                              İptal
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setDeleteConfirmArticleId(art.id)}
+                            className="p-2 text-[#C0392B] hover:bg-[#FDF2F2] rounded-xs transition-colors cursor-pointer"
+                            title="Yazıyı Sil"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
                     </div>
-
-                    <div className="flex items-center space-x-2 shrink-0">
-                      {/* EDIT BUTTON */}
-                      <button
-                        type="button"
-                        onClick={() => handleStartEdit(art)}
-                        className="px-3 py-1.5 text-xs font-ui bg-[#FAF6F0] hover:bg-[#9E7B54] text-[#1A1814] hover:text-[#FFFFFF] border border-[#D8D2C7] rounded-xs transition-colors cursor-pointer flex items-center gap-1.5"
-                        title="Yazıyı ve Fotoğrafı Düzenle"
-                      >
-                        <Edit3 className="w-3.5 h-3.5 text-[#9E7B54]" />
-                        <span>Düzenle</span>
-                      </button>
-
-                      {/* VIEW BUTTON */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onClose();
-                          onSelectArticle(art);
-                        }}
-                        className="p-2 text-[#767064] hover:text-[#1A1814] hover:bg-[#FAF6F0] rounded-xs transition-colors cursor-pointer"
-                        title="Yazıyı Oku"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-
-                      {/* DELETE BUTTON */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onDeleteArticle(art.id);
-                          addLog('delete', `Yazı silindi: "${art.title}"`);
-                        }}
-                        className="p-2 text-[#C0392B] hover:bg-[#FDF2F2] rounded-xs transition-colors cursor-pointer"
-                        title="Yazıyı Sil"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
