@@ -129,6 +129,18 @@ export default function App() {
     }
   };
 
+  const handleClearAllArticles = () => {
+    setAllArticles([]);
+    try {
+      localStorage.removeItem('viberoutes_custom_articles');
+      localStorage.removeItem('viberoutes_imported_articles');
+      localStorage.removeItem('vibe_custom_articles');
+    } catch (e) {
+      console.warn('Could not clear cached articles:', e);
+    }
+    setSelectedArticle(null);
+  };
+
   const handleDeleteArticle = (articleId: string) => {
     setAllArticles((prev) => {
       const defaultIds = new Set(ARTICLES_DATA.map(a => a.id));
@@ -182,11 +194,11 @@ export default function App() {
     const explicitlyAssigned = allArticles.filter(
       (a) => a.homeSection === 'top_stories' && a.id !== featuredArticle?.id
     );
-    if (explicitlyAssigned.length >= 3) return explicitlyAssigned.slice(0, 3);
+    if (explicitlyAssigned.length >= 5) return explicitlyAssigned.slice(0, 5);
     const fallbacks = allArticles.filter(
       (a) => a.id !== featuredArticle?.id && !explicitlyAssigned.some((ea) => ea.id === a.id)
     );
-    return [...explicitlyAssigned, ...fallbacks].slice(0, 3);
+    return [...explicitlyAssigned, ...fallbacks].slice(0, 5);
   })();
 
   const editorsPickArticles = (() => {
@@ -347,15 +359,34 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {latestStoriesArticles.map((art) => (
-                    <ArticleCard
-                      key={art.id}
-                      article={art}
-                      onSelectArticle={handleSelectArticle}
-                      onToggleBookmark={toggleBookmark}
-                      isBookmarked={bookmarkedIds.includes(art.id)}
-                    />
-                  ))}
+                  {latestStoriesArticles.length > 0 ? (
+                    latestStoriesArticles.map((art) => (
+                      <ArticleCard
+                        key={art.id}
+                        article={art}
+                        onSelectArticle={handleSelectArticle}
+                        onToggleBookmark={toggleBookmark}
+                        isBookmarked={bookmarkedIds.includes(art.id)}
+                      />
+                    ))
+                  ) : (
+                    <div className="col-span-full py-16 px-6 bg-[#FFFFFF] border border-[#E5E0D8] text-center space-y-4">
+                      <div className="w-12 h-12 rounded-full bg-[#FAF8F5] border border-[#E5E0D8] flex items-center justify-center mx-auto text-[#9E7B54]">
+                        <BookOpen className="w-6 h-6" />
+                      </div>
+                      <h3 className="font-display text-2xl text-[#1A1814]">Editoryal Akış Hazır</h3>
+                      <p className="text-sm font-ui text-[#767064] max-w-md mx-auto leading-relaxed">
+                        Henüz yayınlanmış bir makale bulunmuyor. Editoryal Panel'den Word (.docx) dosyanızı yükleyerek veya yeni bir yazı oluşturarak butik otel vitrinleriyle birlikte hemen yayına alabilirsiniz.
+                      </p>
+                      <button
+                        onClick={handleOpenAdminPanel}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1A1814] text-[#FAF8F5] text-xs font-ui uppercase tracking-wider font-semibold hover:bg-[#D97706] transition-colors cursor-pointer shadow-xs"
+                      >
+                        <span>Yeni Yazı & Otel Ekle</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -438,6 +469,7 @@ export default function App() {
         onAddArticle={handleAddArticle}
         onUpdateArticle={handleUpdateArticle}
         onDeleteArticle={handleDeleteArticle}
+        onClearAllArticles={handleClearAllArticles}
         onSelectArticle={handleSelectArticle}
       />
     </div>

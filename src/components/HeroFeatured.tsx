@@ -1,6 +1,6 @@
 import React from 'react';
 import { Article } from '../types';
-import { Bookmark, Clock, ArrowRight, Sparkles, TrendingUp } from 'lucide-react';
+import { Bookmark, Clock, ArrowRight } from 'lucide-react';
 import { getCategoryStyles } from '../utils/categoryColors';
 
 interface HeroFeaturedProps {
@@ -124,59 +124,56 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({
           </div>
 
           {/* RIGHT 35%: TOP STORIES TODAY (Condé Nast Vertical Stack) */}
-          <div className="lg:col-span-5 flex flex-col space-y-4">
+          <div className="lg:col-span-5 flex flex-col space-y-3">
             
             {/* Header */}
             <div className="flex items-center justify-between pb-2.5 border-b-2 border-[#1A1814]">
-              <div className="flex items-center space-x-2 text-[#1A1814]">
-                <TrendingUp className="w-4 h-4 text-[#D97706]" />
-                <h3 className="font-display text-xl font-bold tracking-wide uppercase">
-                  TOP STORIES TODAY
-                </h3>
-              </div>
+              <h3 className="font-display text-xl font-bold tracking-wide uppercase text-[#1A1814]">
+                TOP STORIES TODAY
+              </h3>
               <span className="text-xs font-ui text-[#665E54] uppercase tracking-wider font-semibold">
                 Vibe Routes Edit
               </span>
             </div>
 
-            {/* Vertical Articles Stack */}
-            <div className="flex flex-col space-y-3">
-              {sideArticles.slice(0, 3).map((sideArt, index) => {
+            {/* Vertical Articles Stack (5 Articles) */}
+            <div className="flex flex-col space-y-2.5">
+              {sideArticles.slice(0, 5).map((sideArt, index) => {
                 const sideCatStyle = getCategoryStyles(sideArt.category);
 
                 return (
                   <article
                     key={sideArt.id}
                     onClick={() => onSelectArticle(sideArt)}
-                    className="group bg-[#FFFFFF] p-4.5 border border-[#E5E0D8] hover:border-[#9E7B54] hover:shadow-xs transition-all cursor-pointer flex gap-4 items-center"
+                    className="group bg-[#FFFFFF] p-3 sm:p-3.5 border border-[#E5E0D8] hover:border-[#9E7B54] hover:shadow-xs transition-all cursor-pointer flex gap-3.5 items-center"
                   >
                     {/* Number Badge */}
-                    <div className="shrink-0 font-display text-3xl sm:text-4xl font-semibold text-[#8C827A] group-hover:text-[#9E7B54] transition-colors w-9 text-center">
+                    <div className="shrink-0 font-display text-2xl sm:text-3xl font-semibold text-[#8C827A] group-hover:text-[#9E7B54] transition-colors w-8 text-center">
                       0{index + 1}
                     </div>
 
                     {/* Content */}
-                    <div className="grow min-w-0 space-y-1.5">
+                    <div className="grow min-w-0 space-y-1">
                       <div className="flex items-center space-x-2 text-xs font-ui uppercase tracking-wider font-semibold">
-                        <span className={`px-2 py-0.5 border ${sideCatStyle.pillBg} font-bold text-[11px]`}>
+                        <span className={`px-1.5 py-0.5 border ${sideCatStyle.pillBg} font-bold text-[10px]`}>
                           {sideArt.subCategory || sideArt.category}
                         </span>
-                        <span className="text-[#665E54]">{sideArt.region}</span>
+                        <span className="text-[#665E54] text-[11px] truncate">{sideArt.region}</span>
                       </div>
 
-                      <h4 className="font-display text-lg sm:text-xl font-semibold text-[#14120E] group-hover:text-[#9E7B54] transition-colors leading-snug line-clamp-2">
+                      <h4 className="font-display text-base sm:text-lg font-semibold text-[#14120E] group-hover:text-[#9E7B54] transition-colors leading-snug line-clamp-2">
                         {sideArt.title}
                       </h4>
 
-                      <div className="flex items-center space-x-2 text-xs font-ui text-[#524B43] font-medium">
-                        <span className="text-[#3D3730] font-semibold">{sideArt.author.name}</span>
+                      <div className="flex items-center space-x-2 text-[11px] font-ui text-[#524B43] font-medium">
+                        <span className="text-[#3D3730] font-semibold truncate">{sideArt.author.name}</span>
                         <span>•</span>
-                        <span>{sideArt.readTime}</span>
+                        <span className="shrink-0">{sideArt.readTime}</span>
                       </div>
                     </div>
 
                     {/* Thumbnail Image */}
-                    <div className="w-22 h-22 shrink-0 bg-[#EFEAE2] border border-[#E5E0D8] overflow-hidden">
+                    <div className="w-18 h-18 sm:w-20 sm:h-20 shrink-0 bg-[#EFEAE2] border border-[#E5E0D8] overflow-hidden">
                       <img
                         src={sideArt.coverImage}
                         alt={sideArt.title}

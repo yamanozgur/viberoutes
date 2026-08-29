@@ -53,7 +53,7 @@ export async function parseDocxFile(file: File): Promise<ParsedDocxResult> {
   const sections: Article['sections'] = [];
   let currentHeading = '';
   let currentSectionParas: string[] = [];
-  let currentSectionImg: { url: string; caption?: string; credit?: string } | undefined = undefined;
+  let currentSectionImg: { url: string; caption: string; credit?: string } | undefined = undefined;
 
   let imgIndex = 1; // index for section images (index 0 is cover if available)
 

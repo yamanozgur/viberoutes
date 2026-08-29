@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Article, MainCategory, SubCategory, HomeSection } from '../types';
+import { Article, MainCategory, SubCategory, HomeSection, HotelFeature } from '../types';
 import { parseDocxFile, ParsedDocxResult } from '../utils/docxImporter';
 import {
   FileText,
@@ -22,7 +22,9 @@ import {
   Plus,
   Activity,
   CheckCircle2,
-  Clock
+  Clock,
+  Building2,
+  Star
 } from 'lucide-react';
 
 interface AdminPanelProps {
@@ -32,6 +34,7 @@ interface AdminPanelProps {
   onAddArticle: (article: Article) => void;
   onUpdateArticle: (article: Article) => void;
   onDeleteArticle: (id: string) => void;
+  onClearAllArticles?: () => void;
   onSelectArticle: (article: Article) => void;
   initialTab?: 'upload' | 'editor' | 'articles' | 'history';
 }
@@ -70,7 +73,7 @@ const SUBCATEGORIES: SubCategory[] = [
 
 export const HOME_SECTIONS: { id: HomeSection; label: string; description: string }[] = [
   { id: 'hero_cover', label: 'Cover Story (Manşet)', description: 'Ana sayfanın en üstündeki ana büyük kapak hikayesi' },
-  { id: 'top_stories', label: 'Top Stories Today (Günün Öne Çıkanları)', description: 'Manşetin sağ tarafındaki 01-03 dikey sıralı liste' },
+  { id: 'top_stories', label: 'Top Stories Today (Günün Öne Çıkanları)', description: 'Manşetin sağ tarafındaki 01-05 dikey sıralı liste' },
   { id: 'editors_pick', label: 'Editor’s Must-Read (Editörün Seçtikleri)', description: 'Editörün olmazsa olmaz önerileri ve slow travel seçkisi' },
   { id: 'latest', label: 'Latest Stories & Field Reports (Son Yazılar)', description: 'Ana akış ve kültürel dosyalar bölümü' },
   { id: 'none', label: 'Yalnızca Kategori Sayfası', description: 'Ana sayfada özel blokta yer almaz, kategori filtrelerinde listelenir' },
@@ -85,6 +88,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onAddArticle,
   onUpdateArticle,
   onDeleteArticle,
+  onClearAllArticles,
   onSelectArticle,
   initialTab = 'upload',
 }) => {
@@ -179,6 +183,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [authorRole, setAuthorRole] = useState('Editor-in-Chief & Founder');
   const [coverUrl, setCoverUrl] = useState(DEFAULT_COVER);
   const [homeSection, setHomeSection] = useState<HomeSection>('latest');
+
+  // Boutique Hotel & Luxury Stays showcase management
+  const [hotels, setHotels] = useState<HotelFeature[]>([]);
+  const [showHotelModal, setShowHotelModal] = useState(false);
+  const [editingHotelIndex, setEditingHotelIndex] = useState<number | null>(null);
+
+  const [hotelName, setHotelName] = useState('');
+  const [hotelFormerLife, setHotelFormerLife] = useState('');
+  const [hotelLocation, setHotelLocation] = useState('');
+  const [hotelPrice, setHotelPrice] = useState('€350 / night');
+  const [hotelRating, setHotelRating] = useState('9.4 / 10');
+  const [hotelDescription, setHotelDescription] = useState('');
+  const [hotelTravelerTip, setHotelTravelerTip] = useState('');
+  const [hotelImageUrl, setHotelImageUrl] = useState('https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1200&auto=format&fit=crop');
+  const [hotelAffiliateProvider, setHotelAffiliateProvider] = useState<'Booking.com' | 'Mr & Mrs Smith' | 'Design Hotels' | 'Direct'>('Booking.com');
+  const [hotelAffiliateUrl, setHotelAffiliateUrl] = useState('https://www.booking.com');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -297,9 +317,77 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setAuthorRole(article.author.role);
     setCoverUrl(article.coverImage || DEFAULT_COVER);
     setHomeSection(article.homeSection || (article.featured ? 'hero_cover' : (article.isPopular ? 'top_stories' : (article.isEditorPick ? 'editors_pick' : 'latest'))));
+    setHotels(article.hotelData ? [...article.hotelData] : []);
 
     addLog('edit', `Yazı düzenleme moduna alındı: "${article.title}"`);
     setActiveTab('editor');
+  };
+
+  const handleOpenNewHotelModal = () => {
+    setEditingHotelIndex(null);
+    setHotelName('');
+    setHotelFormerLife('');
+    setHotelLocation(region || 'Europe');
+    setHotelPrice('€350 / night');
+    setHotelRating('9.4 / 10');
+    setHotelDescription('');
+    setHotelTravelerTip('');
+    setHotelImageUrl('https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1200&auto=format&fit=crop');
+    setHotelAffiliateProvider('Booking.com');
+    setHotelAffiliateUrl('https://www.booking.com');
+    setShowHotelModal(true);
+  };
+
+  const handleEditHotel = (index: number) => {
+    const h = hotels[index];
+    if (!h) return;
+    setEditingHotelIndex(index);
+    setHotelName(h.name);
+    setHotelFormerLife(h.formerLife || '');
+    setHotelLocation(h.location);
+    setHotelPrice(h.priceStarting || '€350 / night');
+    setHotelRating(h.rating || '9.4 / 10');
+    setHotelDescription(h.description);
+    setHotelTravelerTip(h.travelerTip || '');
+    setHotelImageUrl(h.imageUrl);
+    setHotelAffiliateProvider(h.affiliateProvider || 'Booking.com');
+    setHotelAffiliateUrl(h.affiliateUrl || 'https://www.booking.com');
+    setShowHotelModal(true);
+  };
+
+  const handleSaveHotel = () => {
+    if (!hotelName.trim()) {
+      setErrorMessage('Lütfen otel adını doldurun.');
+      return;
+    }
+    const newHotel: HotelFeature = {
+      name: hotelName.trim(),
+      formerLife: hotelFormerLife.trim() || undefined,
+      location: hotelLocation.trim() || region || 'Europe',
+      description: hotelDescription.trim() || `${hotelName} is a curated sanctuary celebrating architectural heritage and sense of place.`,
+      designHighlight: hotelFormerLife.trim() || 'Architectural integrity and curated interiors',
+      priceStarting: hotelPrice.trim() || '€350 / night',
+      travelerTip: hotelTravelerTip.trim() || 'Book an upper-floor suite for panoramic historic views.',
+      affiliateProvider: hotelAffiliateProvider,
+      affiliateUrl: hotelAffiliateUrl.trim() || 'https://www.booking.com',
+      imageUrl: hotelImageUrl.trim() || DEFAULT_COVER,
+      rating: hotelRating.trim() || '9.4 / 10',
+    };
+
+    if (editingHotelIndex !== null) {
+      setHotels((prev) => prev.map((item, idx) => (idx === editingHotelIndex ? newHotel : item)));
+      addLog('edit', `Butik otel güncellendi: "${newHotel.name}"`);
+    } else {
+      setHotels((prev) => [...prev, newHotel]);
+      addLog('edit', `Yazıya butik otel eklendi: "${newHotel.name}"`);
+    }
+    setShowHotelModal(false);
+    setErrorMessage('');
+  };
+
+  const handleDeleteHotel = (index: number) => {
+    setHotels((prev) => prev.filter((_, idx) => idx !== index));
+    addLog('delete', 'Butik otel listeden kaldırıldı.');
   };
 
   // Convert body text back to structured sections
@@ -379,6 +467,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       excerpt: introParagraph ? introParagraph.slice(0, 180).trim() + '...' : (subtitle ? subtitle.slice(0, 180).trim() + '...' : ''),
       introParagraph: introParagraph || subtitle,
       sections: sections,
+      hotelData: hotels.length > 0 ? hotels : undefined,
       tags: [subCategory, region, 'Editorial', 'Curated Story'],
       featured: homeSection === 'hero_cover',
       isPopular: homeSection === 'top_stories' || homeSection === 'hero_cover',
@@ -410,6 +499,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setSubtitle('');
     setIntroParagraph('');
     setBodyText('');
+    setHotels([]);
     setCoverUrl(DEFAULT_COVER);
     addLog('upload', 'Boş editör başlatıldı.');
     setActiveTab('editor');
@@ -830,6 +920,91 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   />
                 </div>
 
+                {/* Boutique Hotel & Sanctuaries Showcase Section */}
+                <div className="pt-4 border-t border-[#E5E0D8] space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-[#9E7B54]" />
+                        <h4 className="text-xs font-ui font-bold uppercase tracking-wider text-[#1A1814]">
+                          Boutique Stays & Lüks Otel Vitrini (Bölüm: Historic Sanctuaries)
+                        </h4>
+                      </div>
+                      <p className="text-[11px] font-ui text-[#767064] mt-0.5">
+                        Bu yazıya eklenen butik oteller ana sayfadaki "Boutique Stays & Historic Sanctuaries" bölümünde fiyat ve rezervasyon butonuyla vitrine çıkarılır.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleOpenNewHotelModal}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#FAF6F0] hover:bg-[#9E7B54] text-[#1A1814] hover:text-[#FFFFFF] border border-[#D8D2C7] text-xs font-ui font-medium rounded-xs transition-colors cursor-pointer self-start sm:self-auto"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Butik Otel Ekle</span>
+                    </button>
+                  </div>
+
+                  {hotels.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      {hotels.map((h, idx) => (
+                        <div
+                          key={idx}
+                          className="bg-[#FAFAF8] border border-[#E5E0D8] p-3 flex items-start gap-3 relative group"
+                        >
+                          <div className="w-16 h-16 bg-[#E8E3DA] shrink-0 overflow-hidden border border-[#D8D2C7]">
+                            <img
+                              src={h.imageUrl}
+                              alt={h.name}
+                              referrerPolicy="no-referrer"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = DEFAULT_COVER;
+                              }}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="min-w-0 grow">
+                            <div className="flex items-center justify-between">
+                              <h5 className="font-display text-sm font-semibold text-[#1A1814] truncate">
+                                {h.name}
+                              </h5>
+                              <span className="text-[10px] font-ui font-semibold text-[#9E7B54] bg-[#FAF6F0] px-1.5 py-0.5 border border-[#E5E0D8]">
+                                {h.priceStarting}
+                              </span>
+                            </div>
+                            <p className="text-[11px] font-ui text-[#767064] truncate mt-0.5">
+                              {h.formerLife ? `${h.formerLife} • ` : ''}{h.location}
+                            </p>
+                            <div className="flex items-center gap-2 mt-2">
+                              <button
+                                type="button"
+                                onClick={() => handleEditHotel(idx)}
+                                className="text-[10px] font-ui text-[#0284C7] hover:underline cursor-pointer font-medium"
+                              >
+                                Düzenle
+                              </button>
+                              <span className="text-[#D5CFC5]">•</span>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteHotel(idx)}
+                                className="text-[10px] font-ui text-[#C0392B] hover:underline cursor-pointer font-medium"
+                              >
+                                Kaldır
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-[#FAFAF8] border border-dashed border-[#D8D2C7] text-center">
+                      <p className="text-xs font-ui text-[#767064]">
+                        Henüz bu yazıya butik otel vitrini eklenmedi. (İsteğe bağlı: Butik otel ekleyerek ana sayfada vitrin oluşturabilirsiniz.)
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 <div className="pt-3 border-t border-[#EFEAE2]">
                   <button
                     type="submit"
@@ -847,22 +1022,43 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           {/* TAB 3: ARTICLES LIST WITH EDIT & DELETE */}
           {activeTab === 'articles' && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                 <span className="text-xs font-ui text-[#767064]">
                   Toplam {articles.length} yayında yazı bulunuyor. İstediğiniz yazıyı düzenleyebilir veya fotoğrafını değiştirebilirsiniz.
                 </span>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingArticleId(null);
-                    setActiveTab('upload');
-                  }}
-                  className="px-3 py-1.5 bg-[#1A1814] hover:bg-[#9E7B54] text-[#FFFFFF] text-xs font-ui flex items-center gap-1 cursor-pointer transition-colors"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Yeni Yazı Yükle</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  {onClearAllArticles && articles.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm('Tüm yayındaki yazıları silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) {
+                          onClearAllArticles();
+                          addLog('delete', 'Tüm yayındaki yazılar temizlendi.');
+                          setSuccessMessage('Tüm yazılar başarıyla temizlendi.');
+                          setTimeout(() => setSuccessMessage(''), 2500);
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-[#FDF2F2] hover:bg-[#FDE8E8] text-[#C0392B] border border-[#F8B4B4] text-xs font-ui flex items-center gap-1.5 cursor-pointer transition-colors"
+                      title="Tüm yazıları temizle"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Tümünü Temizle</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingArticleId(null);
+                      setActiveTab('upload');
+                    }}
+                    className="px-3 py-1.5 bg-[#1A1814] hover:bg-[#9E7B54] text-[#FFFFFF] text-xs font-ui flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Yeni Yazı Yükle</span>
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -1077,6 +1273,187 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           })()}
         </div>
       </div>
+
+      {/* Boutique Stay / Hotel Editor Modal */}
+      {showHotelModal && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-[#1A1814]/80 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-[#FAF8F5] border border-[#E5E0D8] w-full max-w-xl shadow-2xl p-5 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto text-[#2D2924]">
+            <div className="flex items-center justify-between border-b border-[#E5E0D8] pb-3">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-[#9E7B54]" />
+                <h3 className="font-display text-lg font-medium text-[#1A1814]">
+                  {editingHotelIndex !== null ? 'Butik Oteli Düzenle' : 'Yeni Butik Otel Ekle'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowHotelModal(false)}
+                className="p-1 text-[#767064] hover:text-[#1A1814] cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3.5">
+              <div>
+                <label className="text-[11px] font-ui font-semibold uppercase text-[#4A453E] block mb-1">
+                  Otel Adı *
+                </label>
+                <input
+                  type="text"
+                  placeholder="Örn: Reschio Estate, Son Blanc Farmhouse, Aman Venice..."
+                  value={hotelName}
+                  onChange={(e) => setHotelName(e.target.value)}
+                  className="w-full bg-[#FFFFFF] border border-[#D5CFC5] px-3 py-2 text-xs font-ui text-[#1A1814]"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-ui font-semibold uppercase text-[#4A453E] block mb-1">
+                    Tarihi Kökeni / Eski Hayatı (Former Life)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Örn: 10th-century Umbrian Castle"
+                    value={hotelFormerLife}
+                    onChange={(e) => setHotelFormerLife(e.target.value)}
+                    className="w-full bg-[#FFFFFF] border border-[#D5CFC5] px-3 py-2 text-xs font-ui text-[#1A1814]"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-ui font-semibold uppercase text-[#4A453E] block mb-1">
+                    Lokasyon / Bölge
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Örn: Umbria, Italy veya Menorca, Spain"
+                    value={hotelLocation}
+                    onChange={(e) => setHotelLocation(e.target.value)}
+                    className="w-full bg-[#FFFFFF] border border-[#D5CFC5] px-3 py-2 text-xs font-ui text-[#1A1814]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-ui font-semibold uppercase text-[#4A453E] block mb-1">
+                    Başlangıç Fiyatı (Price Starting)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Örn: €380 / night"
+                    value={hotelPrice}
+                    onChange={(e) => setHotelPrice(e.target.value)}
+                    className="w-full bg-[#FFFFFF] border border-[#D5CFC5] px-3 py-2 text-xs font-ui text-[#1A1814]"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-ui font-semibold uppercase text-[#4A453E] block mb-1">
+                    Puan / Rating
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Örn: 9.6 / 10"
+                    value={hotelRating}
+                    onChange={(e) => setHotelRating(e.target.value)}
+                    className="w-full bg-[#FFFFFF] border border-[#D5CFC5] px-3 py-2 text-xs font-ui text-[#1A1814]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-ui font-semibold uppercase text-[#4A453E] block mb-1">
+                  Kısa Tanıtım & Tasarım Kimliği
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Otelin mimari dokusu ve sunduğu deneyim..."
+                  value={hotelDescription}
+                  onChange={(e) => setHotelDescription(e.target.value)}
+                  className="w-full bg-[#FFFFFF] border border-[#D5CFC5] p-2.5 text-xs font-ui text-[#1A1814]"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-ui font-semibold uppercase text-[#4A453E] block mb-1">
+                  Gezgin İpucu (Traveler Tip)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Örn: Request the Tower Suite with private terrace sunset vistas."
+                  value={hotelTravelerTip}
+                  onChange={(e) => setHotelTravelerTip(e.target.value)}
+                  className="w-full bg-[#FFFFFF] border border-[#D5CFC5] px-3 py-2 text-xs font-ui text-[#1A1814]"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-ui font-semibold uppercase text-[#4A453E] block mb-1">
+                  Fotoğraf URL'si (Unsplash veya Doğrudan Link)
+                </label>
+                <input
+                  type="text"
+                  placeholder="https://images.unsplash.com/photo-..."
+                  value={hotelImageUrl}
+                  onChange={(e) => setHotelImageUrl(e.target.value)}
+                  className="w-full bg-[#FFFFFF] border border-[#D5CFC5] px-3 py-2 text-xs font-ui text-[#1A1814]"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-ui font-semibold uppercase text-[#4A453E] block mb-1">
+                    Rezervasyon Sağlayıcı
+                  </label>
+                  <select
+                    value={hotelAffiliateProvider}
+                    onChange={(e) => setHotelAffiliateProvider(e.target.value as any)}
+                    className="w-full bg-[#FFFFFF] border border-[#D5CFC5] px-3 py-2 text-xs font-ui text-[#1A1814]"
+                  >
+                    <option value="Booking.com">Booking.com</option>
+                    <option value="Mr & Mrs Smith">Mr & Mrs Smith</option>
+                    <option value="Design Hotels">Design Hotels</option>
+                    <option value="Direct">Direct / Otel Resmi Sitesi</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-ui font-semibold uppercase text-[#4A453E] block mb-1">
+                    Rezervasyon Linki (Affiliate URL)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="https://..."
+                    value={hotelAffiliateUrl}
+                    onChange={(e) => setHotelAffiliateUrl(e.target.value)}
+                    className="w-full bg-[#FFFFFF] border border-[#D5CFC5] px-3 py-2 text-xs font-ui text-[#1A1814]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E5E0D8]">
+              <button
+                type="button"
+                onClick={() => setShowHotelModal(false)}
+                className="px-4 py-2 text-xs font-ui text-[#5C554D] hover:bg-[#EAE4DC] rounded-xs cursor-pointer"
+              >
+                İptal
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveHotel}
+                className="px-5 py-2 bg-[#1A1814] hover:bg-[#9E7B54] text-[#FFFFFF] text-xs font-ui uppercase tracking-wider font-semibold rounded-xs transition-colors cursor-pointer"
+              >
+                {editingHotelIndex !== null ? 'Değişikliği Kaydet' : 'Otele Ekle'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
