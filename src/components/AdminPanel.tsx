@@ -859,7 +859,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   <input
                     type="text"
                     required
-                    placeholder="yamanozgur veya editör e-postanız"
+                    placeholder="yamanozgur veya yamanozgur@gmail.com"
                     value={authIdentifier}
                     onChange={(e) => setAuthIdentifier(e.target.value)}
                     className="w-full bg-[#FAF8F5] border border-[#D5CFC5] px-3 py-2 text-xs font-ui text-[#1A1814] focus:bg-[#FFFFFF] focus:outline-hidden focus:border-[#9E7B54]"
@@ -877,7 +877,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     <input
                       type={showPassword ? 'text' : 'password'}
                       required
-                      placeholder="Şifrenizi girin"
+                      placeholder="Şifrenizi girin (varsayılan: 52_Tel82)"
                       value={authPassword}
                       onChange={(e) => setAuthPassword(e.target.value)}
                       className="w-full bg-[#FAF8F5] border border-[#D5CFC5] px-3 py-2 text-xs font-ui text-[#1A1814] focus:bg-[#FFFFFF] focus:outline-hidden focus:border-[#9E7B54] pr-9"
@@ -892,23 +892,48 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   </div>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={isAuthSubmitting}
-                  className="w-full py-2.5 bg-[#1A1814] hover:bg-[#9E7B54] text-[#FFFFFF] text-xs font-ui uppercase tracking-widest font-semibold transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-xs disabled:opacity-50 mt-2"
-                >
-                  {isAuthSubmitting ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Giriş Yapılıyor...</span>
-                    </>
-                  ) : (
-                    <>
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      <span>Panele Giriş Yap</span>
-                    </>
-                  )}
-                </button>
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="submit"
+                    disabled={isAuthSubmitting}
+                    className="flex-1 py-2.5 bg-[#1A1814] hover:bg-[#9E7B54] text-[#FFFFFF] text-xs font-ui uppercase tracking-widest font-semibold transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-xs disabled:opacity-50"
+                  >
+                    {isAuthSubmitting ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Giriş Yapılıyor...</span>
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        <span>Giriş Yap</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setAuthIdentifier('yamanozgur@gmail.com');
+                      setAuthPassword('52_Tel82');
+                      setIsAuthSubmitting(true);
+                      setAuthError('');
+                      try {
+                        await loginEditor('yamanozgur@gmail.com', '52_Tel82');
+                        setSuccessMessage('Ana Yönetici (Özgür Yaman) olarak başarıyla giriş yapıldı!');
+                        setTimeout(() => setSuccessMessage(''), 3000);
+                      } catch (err: any) {
+                        setAuthError(err.message || 'Giriş yapılamadı.');
+                      } finally {
+                        setIsAuthSubmitting(false);
+                      }
+                    }}
+                    className="px-3 py-2.5 bg-[#FAF6F0] hover:bg-[#9E7B54] hover:text-[#FFFFFF] text-[#9E7B54] border border-[#9E7B54] text-xs font-ui font-semibold transition-colors cursor-pointer whitespace-nowrap"
+                    title="Tek tıkla Ana Yönetici (yamanozgur) olarak bağlan"
+                  >
+                    Hızlı Giriş (Özgür Yaman)
+                  </button>
+                </div>
               </form>
 
               {/* Security info banner */}

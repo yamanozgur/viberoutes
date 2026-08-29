@@ -36,27 +36,22 @@ export default function App() {
     }
   });
 
-  // Articles state initialized with hardcoded and imported articles from localStorage
+  // Articles state initialized with imported/cloud articles, strictly empty if none created
   const [allArticles, setAllArticles] = useState<Article[]>(() => {
     try {
       const savedDeleted = localStorage.getItem('viberoutes_deleted_ids');
       const delSet = savedDeleted ? new Set<string>(JSON.parse(savedDeleted)) : new Set<string>();
 
-      const savedCustom = localStorage.getItem('viberoutes_custom_articles') || 
-                          localStorage.getItem('viberoutes_imported_articles') ||
-                          localStorage.getItem('vibe_custom_articles');
+      const savedCustom = localStorage.getItem('viberoutes_custom_articles');
       if (savedCustom) {
         const parsed = JSON.parse(savedCustom);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const defaultIds = new Set(ARTICLES_DATA.map(a => a.id));
-          const customFiltered = parsed.filter(a => !defaultIds.has(a.id) && !delSet.has(a.id));
-          const nonDeletedDefaults = ARTICLES_DATA.filter(a => !delSet.has(a.id));
-          return [...customFiltered, ...nonDeletedDefaults];
+          return parsed.filter((a) => !delSet.has(a.id));
         }
       }
-      return ARTICLES_DATA.filter(a => !delSet.has(a.id));
+      return [];
     } catch {
-      return ARTICLES_DATA;
+      return [];
     }
   });
 
@@ -79,23 +74,25 @@ export default function App() {
   // Real-time synchronization of articles with Firebase Firestore "viberoutes" database
   useEffect(() => {
     const unsubscribe = subscribeToArticles((cloudArticles) => {
-      setAllArticles((prev) => {
+      setAllArticles(() => {
         const delSet = deletedIds;
         if (cloudArticles && cloudArticles.length > 0) {
           const activeCloud = cloudArticles.filter((a) => !delSet.has(a.id));
-          const cloudIds = new Set(activeCloud.map((a) => a.id));
-          const nonCloudDefault = ARTICLES_DATA.filter((a) => !cloudIds.has(a.id) && !delSet.has(a.id));
-          const merged = [...activeCloud, ...nonCloudDefault];
           try {
             localStorage.setItem('viberoutes_custom_articles', JSON.stringify(activeCloud));
           } catch {
             // ignore
           }
-          return merged;
+          return activeCloud;
         } else {
-          // If cloud has 0 articles (or all deleted)
-          const nonDeletedDefaults = ARTICLES_DATA.filter((a) => !delSet.has(a.id));
-          return nonDeletedDefaults;
+          try {
+            localStorage.removeItem('viberoutes_custom_articles');
+            localStorage.removeItem('viberoutes_imported_articles');
+            localStorage.removeItem('vibe_custom_articles');
+          } catch {
+            // ignore
+          }
+          return [];
         }
       });
     });

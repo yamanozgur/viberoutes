@@ -274,8 +274,11 @@ export const formatEditorEmail = (input: string): string => {
  */
 export const loginEditor = async (identifier: string, password: string): Promise<User> => {
   const email = formatEditorEmail(identifier);
-  const isSuperAdminAttempt = email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase() || identifier.trim().toLowerCase() === 'yamanozgur';
+  const isSuperAdminAttempt =
+    email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase() ||
+    identifier.trim().toLowerCase() === 'yamanozgur';
 
+  // If super admin attempt with master password or any valid trigger, attempt login first, fallback to createUser
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     
@@ -294,10 +297,11 @@ export const loginEditor = async (identifier: string, password: string): Promise
     await logEditorialAction('auth', `${isSuperAdmin ? 'Ana Yönetici' : 'Editör'} giriş yaptı: ${userCredential.user.email}`);
     return userCredential.user;
   } catch (err: any) {
-    // If super admin first time login and user account hasn't been created yet in Firebase Auth
-    if (isSuperAdminAttempt && (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential')) {
-      if (password === '52_Tel82') {
-        const cred = await createUserWithEmailAndPassword(auth, SUPER_ADMIN_EMAIL, '52_Tel82');
+    console.warn('Sign-in failed, checking account recovery:', err);
+    // If account doesn't exist yet in Firebase Auth for yamanozgur, automatically create it with the provided password
+    if (isSuperAdminAttempt) {
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, SUPER_ADMIN_EMAIL, password);
         await updateProfile(cred.user, { displayName: 'Özgür Yaman' });
         const userDoc = doc(db, 'users', cred.user.uid);
         await setDoc(userDoc, {
@@ -310,8 +314,14 @@ export const loginEditor = async (identifier: string, password: string): Promise
           createdAt: new Date().toISOString(),
           lastLogin: new Date().toISOString(),
         });
-        await logEditorialAction('auth', `Ana Yönetici hesabı tanımlandı ve giriş yapıldı: ${SUPER_ADMIN_EMAIL}`);
+        await logEditorialAction('auth', `Ana Yönetici hesabı oluşturuldu ve giriş yapıldı: ${SUPER_ADMIN_EMAIL}`);
         return cred.user;
+      } catch (createErr: any) {
+        if (createErr.code === 'auth/email-already-in-use') {
+          // Account already exists in Firebase Auth, but password might have been different or mis-typed
+          throw new Error('Şifre hatalı. Lütfen belirlediğiniz şifreyi kontrol edin.');
+        }
+        throw createErr;
       }
     }
     throw err;
