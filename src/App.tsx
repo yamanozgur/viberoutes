@@ -370,21 +370,14 @@ export default function App() {
                       />
                     ))
                   ) : (
-                    <div className="col-span-full py-16 px-6 bg-[#FFFFFF] border border-[#E5E0D8] text-center space-y-4">
-                      <div className="w-12 h-12 rounded-full bg-[#FAF8F5] border border-[#E5E0D8] flex items-center justify-center mx-auto text-[#9E7B54]">
-                        <BookOpen className="w-6 h-6" />
+                    <div className="col-span-full py-16 px-6 bg-[#FFFFFF] border border-[#E5E0D8] text-center space-y-3">
+                      <div className="w-10 h-10 rounded-full bg-[#FAF8F5] border border-[#E5E0D8] flex items-center justify-center mx-auto text-[#9E7B54]">
+                        <BookOpen className="w-5 h-5" />
                       </div>
-                      <h3 className="font-display text-2xl text-[#1A1814]">Editoryal Akış Hazır</h3>
-                      <p className="text-sm font-ui text-[#767064] max-w-md mx-auto leading-relaxed">
-                        Henüz yayınlanmış bir makale bulunmuyor. Editoryal Panel'den Word (.docx) dosyanızı yükleyerek veya yeni bir yazı oluşturarak butik otel vitrinleriyle birlikte hemen yayına alabilirsiniz.
+                      <h3 className="font-display text-xl text-[#1A1814]">Stories Coming Soon</h3>
+                      <p className="text-xs font-ui text-[#767064] max-w-sm mx-auto leading-relaxed">
+                        Curated dispatches and editorial guides for this collection will be published shortly.
                       </p>
-                      <button
-                        onClick={handleOpenAdminPanel}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1A1814] text-[#FAF8F5] text-xs font-ui uppercase tracking-wider font-semibold hover:bg-[#D97706] transition-colors cursor-pointer shadow-xs"
-                      >
-                        <span>Yeni Yazı & Otel Ekle</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
                     </div>
                   )}
                 </div>

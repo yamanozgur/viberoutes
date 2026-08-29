@@ -111,35 +111,35 @@ export const DestinationsStrip: React.FC<DestinationsStripProps> = ({
             <div
               key={idx}
               onClick={() => handleClick(dest)}
-              className="group relative aspect-[3/4] overflow-hidden bg-[#1A1814] border border-[#E5E0D8] hover:border-[#9E7B54] transition-all cursor-pointer shadow-xs"
+              className="group relative aspect-[3/4] overflow-hidden bg-[#FAF8F5] border border-[#E5E0D8] hover:border-[#9E7B54] transition-all cursor-pointer shadow-xs"
             >
-              {/* Photo */}
+              {/* Photo - high clarity and natural brightness */}
               <img
                 src={dest.imageUrl}
                 alt={dest.name}
                 referrerPolicy="no-referrer"
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-85 group-hover:opacity-95"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-100"
               />
 
-              {/* Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+              {/* Gentle bottom-only vignette overlay (brightened and subtle) */}
+              <div className="absolute inset-0 bg-gradient-to-t from-[#14120E]/80 via-[#14120E]/20 to-transparent" />
 
               {/* Region Pill */}
-              <div className="absolute top-2.5 left-2.5">
-                <span className="px-2 py-0.5 text-[9px] font-ui uppercase tracking-widest font-semibold bg-[#FFFFFF]/90 text-[#1A1814] backdrop-blur-xs">
+              <div className="absolute top-3 left-3">
+                <span className="px-2 py-0.5 text-[9px] font-ui uppercase tracking-widest font-semibold bg-[#FFFFFF]/95 text-[#1A1814] shadow-xs">
                   {dest.tag}
                 </span>
               </div>
 
-              {/* Bottom Details */}
-              <div className="absolute bottom-3 left-3 right-3 space-y-1 text-white">
-                <span className="text-[10px] font-ui uppercase tracking-wider text-[#E5E0D8] block">
+              {/* Bottom Details with crisp text rendering */}
+              <div className="absolute bottom-3 left-3 right-3 space-y-0.5 text-white">
+                <span className="text-[10px] font-ui uppercase tracking-wider text-[#FAF8F5]/90 font-medium block drop-shadow-xs">
                   {dest.country}
                 </span>
-                <h4 className="font-display text-base sm:text-lg font-medium leading-tight group-hover:text-[#E2C799] transition-colors">
+                <h4 className="font-display text-base sm:text-lg font-medium leading-tight text-[#FFFFFF] group-hover:text-[#E2C799] transition-colors drop-shadow-sm">
                   {dest.name}
                 </h4>
-                <p className="text-[10px] font-ui text-[#C4BCAD] font-light line-clamp-1">
+                <p className="text-[10.5px] font-ui text-[#FAF8F5]/85 font-normal line-clamp-1 drop-shadow-xs">
                   {dest.tagline}
                 </p>
               </div>
