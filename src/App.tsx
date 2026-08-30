@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { ARTICLES_DATA } from './data/articles';
-import { Article, MainCategory, SubCategory, HotelFeature, ListItem, GearItem } from './types';
+import { Article, MainCategory, SubCategory, HotelFeature, ListItem, GearItem, FeaturedDestination } from './types';
 import {
   subscribeToArticles,
   subscribeToDeletedArticleIds,
   saveArticleToFirestore,
   deleteArticleFromFirestore,
   clearAllArticlesFromFirestore,
+  subscribeToFeaturedDestinations,
+  DEFAULT_FEATURED_DESTINATIONS,
 } from './lib/firestoreService';
 import { Navbar } from './components/Navbar';
 import { HeroFeatured } from './components/HeroFeatured';
@@ -54,6 +56,19 @@ export default function App() {
       return [];
     }
   });
+
+  // Featured Destinations State
+  const [featuredDestinations, setFeaturedDestinations] = useState<FeaturedDestination[]>(DEFAULT_FEATURED_DESTINATIONS);
+
+  // Real-time synchronization of featured destinations with Firestore
+  useEffect(() => {
+    const unsubDest = subscribeToFeaturedDestinations((cloudDestinations) => {
+      if (cloudDestinations && cloudDestinations.length > 0) {
+        setFeaturedDestinations(cloudDestinations);
+      }
+    });
+    return () => unsubDest();
+  }, []);
 
   // Real-time synchronization of deleted IDs with Firebase Firestore
   useEffect(() => {
@@ -110,7 +125,7 @@ export default function App() {
   const [isBookmarksOpen, setIsBookmarksOpen] = useState(false);
   const [isPressModalOpen, setIsPressModalOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
-  const [adminInitialTab, setAdminInitialTab] = useState<'upload' | 'editor' | 'articles' | 'history'>('upload');
+  const [adminInitialTab, setAdminInitialTab] = useState<'upload' | 'editor' | 'articles' | 'history' | 'team' | 'destinations'>('upload');
   const [bookingModalItem, setBookingModalItem] = useState<{
     type: 'hotel' | 'list' | 'gear' | 'generic';
     hotel?: HotelFeature;
@@ -389,9 +404,14 @@ export default function App() {
             {/* Destinations in Focus Visual Strip */}
             {currentCategory === 'all' && (
               <DestinationsStrip
+                destinations={featuredDestinations}
                 onSelectDestination={(region) => handleSelectCategory('destinations')}
                 articles={allArticles}
                 onSelectArticle={handleSelectArticle}
+                onOpenAdminToDestinations={() => {
+                  setAdminInitialTab('destinations');
+                  setIsAdminOpen(true);
+                }}
               />
             )}
 
@@ -576,6 +596,7 @@ export default function App() {
         onDeleteArticle={handleDeleteArticle}
         onClearAllArticles={handleClearAllArticles}
         onSelectArticle={handleSelectArticle}
+        initialTab={adminInitialTab}
       />
     </div>
   );

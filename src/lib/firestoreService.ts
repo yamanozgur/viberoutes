@@ -19,7 +19,7 @@ import { initializeApp, deleteApp } from 'firebase/app';
 import { getAuth as getSecondaryAuth, signOut as secondarySignOut } from 'firebase/auth';
 import { db, auth } from './firebase';
 import firebaseConfig from '../../firebase-applet-config.json';
-import { Article } from '../types';
+import { Article, FeaturedDestination } from '../types';
 
 export const SUPER_ADMIN_EMAIL = 'yamanozgur@gmail.com';
 
@@ -455,3 +455,151 @@ export const logoutEditor = async (): Promise<void> => {
 export const onAuthStatusChange = (callback: (user: User | null) => void) => {
   return onAuthStateChanged(auth, callback);
 };
+
+export const DEFAULT_FEATURED_DESTINATIONS: FeaturedDestination[] = [
+  {
+    id: 'dest-1',
+    name: 'Dubai & Desert',
+    country: 'United Arab Emirates',
+    tagline: 'Desert Sanctuaries & Avant-Garde',
+    tag: 'Middle East',
+    imageUrl: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?q=80&w=800&auto=format&fit=crop',
+    order: 1,
+  },
+  {
+    id: 'dest-2',
+    name: 'Dublin & Ireland',
+    country: 'Ireland',
+    tagline: 'Literary Ghosts & Amber Pubs',
+    tag: 'Europe',
+    imageUrl: 'https://images.unsplash.com/photo-1549918864-48ac978761a4?q=80&w=800&auto=format&fit=crop',
+    order: 2,
+  },
+  {
+    id: 'dest-3',
+    name: 'Oaxaca & CDMX',
+    country: 'Mexico',
+    tagline: 'Culinary Soul & Green Stone',
+    tag: 'Americas',
+    imageUrl: 'https://images.unsplash.com/photo-1518638150340-f706e86654de?q=80&w=800&auto=format&fit=crop',
+    order: 3,
+  },
+  {
+    id: 'dest-4',
+    name: 'Kyoto & Gion',
+    country: 'Japan',
+    tagline: 'Machiyas & Zen Solitude',
+    tag: 'Asia',
+    imageUrl: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=800&auto=format&fit=crop',
+    order: 4,
+  },
+  {
+    id: 'dest-5',
+    name: 'Amalfi Coast',
+    country: 'Italy',
+    tagline: 'Cliffside Terraces & Cobalt Sea',
+    tag: 'Europe',
+    imageUrl: 'https://images.unsplash.com/photo-1533105079780-92b9be482077?q=80&w=800&auto=format&fit=crop',
+    order: 5,
+  },
+  {
+    id: 'dest-6',
+    name: 'Julian Alps',
+    country: 'Slovenia',
+    tagline: 'Emerald Rivers & Secret Lakes',
+    tag: 'Hidden Gems',
+    imageUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=800&auto=format&fit=crop',
+    order: 6,
+  },
+];
+
+/**
+ * Real-time subscription to Featured Destinations in Firestore
+ */
+export const subscribeToFeaturedDestinations = (
+  callback: (destinations: FeaturedDestination[]) => void
+) => {
+  const col = collection(db, 'featured_destinations');
+  return onSnapshot(
+    col,
+    (snapshot) => {
+      if (snapshot.empty) {
+        callback(DEFAULT_FEATURED_DESTINATIONS);
+        return;
+      }
+      const items: FeaturedDestination[] = [];
+      snapshot.forEach((docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          items.push({
+            id: docSnap.id,
+            name: data.name || '',
+            country: data.country || '',
+            tagline: data.tagline || '',
+            tag: data.tag || 'Destinations',
+            imageUrl: data.imageUrl || 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=800&auto=format&fit=crop',
+            accentColor: data.accentColor,
+            badgeBg: data.badgeBg,
+            order: typeof data.order === 'number' ? data.order : 99,
+            linkedArticleId: data.linkedArticleId,
+            targetRegion: data.targetRegion,
+          });
+        }
+      });
+      items.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      callback(items.length > 0 ? items : DEFAULT_FEATURED_DESTINATIONS);
+    },
+    (err) => {
+      console.warn('Firestore featured_destinations sync error, using defaults:', err);
+      callback(DEFAULT_FEATURED_DESTINATIONS);
+    }
+  );
+};
+
+/**
+ * Save or update a single featured destination
+ */
+export const saveFeaturedDestination = async (dest: FeaturedDestination): Promise<void> => {
+  const destId = dest.id || `dest-${Date.now()}`;
+  const cleanDest: Record<string, any> = {
+    ...dest,
+    id: destId,
+    updatedAt: new Date().toISOString(),
+  };
+  Object.keys(cleanDest).forEach((k) => {
+    if (cleanDest[k] === undefined) delete cleanDest[k];
+  });
+  const docRef = doc(db, 'featured_destinations', destId);
+  await setDoc(docRef, cleanDest, { merge: true });
+  await logEditorialAction('edit', `Öne çıkan bölge güncellendi: ${dest.name} (${dest.country})`);
+};
+
+/**
+ * Delete a featured destination
+ */
+export const deleteFeaturedDestination = async (id: string, name?: string): Promise<void> => {
+  const docRef = doc(db, 'featured_destinations', id);
+  await deleteDoc(docRef);
+  await logEditorialAction('delete', `Öne çıkan bölge silindi: ${name || id}`);
+};
+
+/**
+ * Save all destinations (e.g. re-ordered list)
+ */
+export const saveAllFeaturedDestinations = async (destinations: FeaturedDestination[]): Promise<void> => {
+  for (let i = 0; i < destinations.length; i++) {
+    const d = { ...destinations[i], order: i + 1 };
+    await saveFeaturedDestination(d);
+  }
+};
+
+/**
+ * Reset destinations to defaults
+ */
+export const resetFeaturedDestinationsToDefault = async (): Promise<void> => {
+  for (const item of DEFAULT_FEATURED_DESTINATIONS) {
+    await saveFeaturedDestination(item);
+  }
+  await logEditorialAction('edit', 'Öne çıkan bölgeler varsayılan şablona sıfırlandı.');
+};
+

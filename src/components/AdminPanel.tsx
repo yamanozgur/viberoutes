@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Article, MainCategory, SubCategory, HomeSection, HotelFeature } from '../types';
+import { Article, MainCategory, SubCategory, HomeSection, HotelFeature, FeaturedDestination } from '../types';
 import { parseDocxFile, ParsedDocxResult } from '../utils/docxImporter';
 import {
   loginEditor,
@@ -14,6 +14,12 @@ import {
   SUPER_ADMIN_EMAIL,
   getCurrentUserRole,
   EditorialLog,
+  subscribeToFeaturedDestinations,
+  saveFeaturedDestination,
+  deleteFeaturedDestination,
+  saveAllFeaturedDestinations,
+  resetFeaturedDestinationsToDefault,
+  DEFAULT_FEATURED_DESTINATIONS,
 } from '../lib/firestoreService';
 import { User as FirebaseUser } from 'firebase/auth';
 import {
@@ -49,6 +55,12 @@ import {
   Shield,
   UserPlus,
   KeyRound,
+  Compass,
+  Globe,
+  MoveUp,
+  MoveDown,
+  Layers,
+  Settings2,
 } from 'lucide-react';
 
 interface AdminPanelProps {
@@ -60,7 +72,7 @@ interface AdminPanelProps {
   onDeleteArticle: (id: string) => void;
   onClearAllArticles?: () => void;
   onSelectArticle: (article: Article) => void;
-  initialTab?: 'upload' | 'editor' | 'articles' | 'history';
+  initialTab?: 'upload' | 'editor' | 'articles' | 'history' | 'team' | 'destinations';
 }
 
 interface ActionLog {
@@ -116,7 +128,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onSelectArticle,
   initialTab = 'upload',
 }) => {
-  const [activeTab, setActiveTab] = useState<'upload' | 'editor' | 'articles' | 'history' | 'team'>(initialTab as any);
+  const [activeTab, setActiveTab] = useState<'upload' | 'editor' | 'articles' | 'history' | 'team' | 'destinations'>(initialTab);
+
+  useEffect(() => {
+    if (isOpen && initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -146,6 +164,140 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [isConfirmingClearAll, setIsConfirmingClearAll] = useState(false);
 
   const isSuperAdmin = currentUser?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase() || userRole === 'admin';
+
+  // Featured Destinations (Destinations in Focus) State
+  const [destinationsList, setDestinationsList] = useState<FeaturedDestination[]>(DEFAULT_FEATURED_DESTINATIONS);
+  const [editingDest, setEditingDest] = useState<FeaturedDestination | null>(null);
+  const [isDestModalOpen, setIsDestModalOpen] = useState(false);
+  const [isSavingDest, setIsSavingDest] = useState(false);
+  const [destDeleteConfirmId, setDestDeleteConfirmId] = useState<string | null>(null);
+  const [isResettingDest, setIsResettingDest] = useState(false);
+
+  const [destForm, setDestForm] = useState<{
+    name: string;
+    country: string;
+    tagline: string;
+    tag: string;
+    imageUrl: string;
+    linkedArticleId?: string;
+    targetRegion?: string;
+  }>({
+    name: '',
+    country: '',
+    tagline: '',
+    tag: 'Europe',
+    imageUrl: '',
+    linkedArticleId: '',
+    targetRegion: '',
+  });
+
+  // Sync real-time destinations from Firestore
+  useEffect(() => {
+    const unsub = subscribeToFeaturedDestinations((dests) => {
+      if (dests && dests.length > 0) {
+        setDestinationsList(dests);
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  const handleOpenAddDest = () => {
+    setEditingDest(null);
+    setDestForm({
+      name: '',
+      country: '',
+      tagline: '',
+      tag: 'Europe',
+      imageUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=800&auto=format&fit=crop',
+      linkedArticleId: '',
+      targetRegion: '',
+    });
+    setIsDestModalOpen(true);
+  };
+
+  const handleOpenEditDest = (dest: FeaturedDestination) => {
+    setEditingDest(dest);
+    setDestForm({
+      name: dest.name,
+      country: dest.country,
+      tagline: dest.tagline,
+      tag: dest.tag,
+      imageUrl: dest.imageUrl,
+      linkedArticleId: dest.linkedArticleId || '',
+      targetRegion: dest.targetRegion || '',
+    });
+    setIsDestModalOpen(true);
+  };
+
+  const handleSaveDest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!destForm.name.trim() || !destForm.country.trim() || !destForm.imageUrl.trim()) {
+      setErrorMessage('Lütfen kart başlığı, ülke ve görsel linkini doldurun.');
+      setTimeout(() => setErrorMessage(''), 3000);
+      return;
+    }
+    setIsSavingDest(true);
+    try {
+      const destToSave: FeaturedDestination = {
+        id: editingDest?.id || `dest-${Date.now()}`,
+        name: destForm.name.trim(),
+        country: destForm.country.trim(),
+        tagline: destForm.tagline.trim(),
+        tag: destForm.tag.trim() || 'Destinations',
+        imageUrl: destForm.imageUrl.trim(),
+        order: typeof editingDest?.order === 'number' ? editingDest.order : destinationsList.length + 1,
+        linkedArticleId: destForm.linkedArticleId || undefined,
+        targetRegion: destForm.targetRegion || undefined,
+      };
+      await saveFeaturedDestination(destToSave);
+      addLog('edit', `Öne çıkan bölge kartı güncellendi: ${destToSave.name} (${destToSave.country})`);
+      setSuccessMessage(`"${destToSave.name}" kartı başarıyla kaydedildi.`);
+      setIsDestModalOpen(false);
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Bölge kartı kaydedilemedi.');
+    } finally {
+      setIsSavingDest(false);
+    }
+  };
+
+  const handleDeleteDest = async (id: string, name: string) => {
+    try {
+      await deleteFeaturedDestination(id, name);
+      addLog('delete', `Öne çıkan bölge kartı silindi: ${name}`);
+      setSuccessMessage(`"${name}" kartı silindi.`);
+      setDestDeleteConfirmId(null);
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Bölge kartı silinirken hata oluştu.');
+    }
+  };
+
+  const handleMoveDest = async (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= destinationsList.length) return;
+    const reordered = [...destinationsList];
+    const temp = reordered[index];
+    reordered[index] = reordered[targetIndex];
+    reordered[targetIndex] = temp;
+    setDestinationsList(reordered);
+    await saveAllFeaturedDestinations(reordered);
+    addLog('edit', 'Öne çıkan bölge kartları sıralaması güncellendi.');
+  };
+
+  const handleResetDestinations = async () => {
+    setIsResettingDest(true);
+    try {
+      await resetFeaturedDestinationsToDefault();
+      addLog('edit', 'Bölge kartları varsayılan şablona sıfırlandı.');
+      setSuccessMessage('Tüm kartlar çalışan yüksek çözünürlüklü görsellerle yenilendi.');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Sıfırlama başarısız.');
+    } finally {
+      setIsResettingDest(false);
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStatusChange(async (user) => {
@@ -756,6 +908,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   >
                     <BookOpen className="w-3.5 h-3.5" />
                     <span>Yayındaki Yazılar ({articles.length})</span>
+                  </button>
+
+                  {/* DESTINATIONS IN FOCUS TAB */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('destinations')}
+                    className={`px-3 py-1.5 text-xs font-ui transition-all cursor-pointer font-medium flex items-center gap-1.5 whitespace-nowrap ${
+                      activeTab === 'destinations'
+                        ? 'bg-[#FFFFFF] text-[#1A1814] shadow-xs'
+                        : 'text-[#767064] hover:text-[#1A1814]'
+                    }`}
+                  >
+                    <Compass className="w-3.5 h-3.5 text-[#9E7B54]" />
+                    <span>Bölge Kartları ({destinationsList.length})</span>
                   </button>
 
                   {/* EDITORS & TEAM MANAGEMENT TAB */}
@@ -1926,6 +2092,165 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* TAB 6: DESTINATIONS IN FOCUS (BÖLGE KARTLARI) */}
+              {activeTab === 'destinations' && (
+                <div className="space-y-6">
+                  {/* Top bar */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E5E0D8]">
+                    <div>
+                      <h4 className="font-display text-xl text-[#1A1814] flex items-center gap-2">
+                        <Compass className="w-5 h-5 text-[#9E7B54]" />
+                        <span>Destinations in Focus — Ana Sayfa Bölge Kartları</span>
+                      </h4>
+                      <p className="text-xs font-ui text-[#767064] mt-0.5">
+                        Ana sayfada "VIBE ROUTES TRAVEL COLLECTION" altında sergilenen bölge vitrinini buradan yönetebilir, fotoğraflarını değiştirebilir veya yeni bölge ekleyebilirsiniz.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={handleResetDestinations}
+                        disabled={isResettingDest}
+                        className="px-3 py-1.5 bg-[#FFFFFF] hover:bg-[#FAF8F5] text-[#5C554D] hover:text-[#1A1814] border border-[#D5CFC5] text-xs font-ui flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
+                        title="Tüm kartları çalışan ve yüksek kaliteli görsellerle varsayılana getir"
+                      >
+                        <RotateCcw className={`w-3.5 h-3.5 ${isResettingDest ? 'animate-spin' : 'text-[#9E7B54]'}`} />
+                        <span>Varsayılana Sıfırla</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleOpenAddDest}
+                        className="px-3.5 py-1.5 bg-[#1A1814] hover:bg-[#9E7B54] text-[#FFFFFF] text-xs font-ui font-medium flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Yeni Bölge Kartı Ekle</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Cards Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {destinationsList.map((dest, idx) => (
+                      <div
+                        key={dest.id || idx}
+                        className="bg-[#FFFFFF] border border-[#E5E0D8] p-3 shadow-xs rounded-xs flex flex-col justify-between space-y-3 group hover:border-[#9E7B54] transition-all"
+                      >
+                        {/* Image Preview & Badges */}
+                        <div className="relative aspect-[16/10] bg-[#FAF8F5] overflow-hidden rounded-2xs border border-[#EFEAE2]">
+                          <img
+                            src={dest.imageUrl}
+                            alt={dest.name}
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              e.currentTarget.src = 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=800&auto=format&fit=crop';
+                            }}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <div className="absolute top-2 left-2 flex items-center gap-1">
+                            <span className="px-1.5 py-0.5 text-[9px] font-ui font-semibold uppercase tracking-wider bg-[#FFFFFF]/95 text-[#1A1814] shadow-2xs rounded-2xs">
+                              {dest.tag || 'Bölge'}
+                            </span>
+                          </div>
+                          <div className="absolute top-2 right-2">
+                            <span className="px-1.5 py-0.5 text-[9px] font-ui font-semibold bg-[#1A1814]/80 text-[#FAF8F5] rounded-2xs">
+                              #{idx + 1}
+                            </span>
+                          </div>
+                          <div className="absolute bottom-2 left-2 right-2 text-white bg-gradient-to-t from-black/80 to-transparent p-1.5 rounded-2xs">
+                            <span className="text-[9px] uppercase tracking-wider text-[#EAE4DC] block font-ui">{dest.country}</span>
+                            <h5 className="font-display text-sm font-medium text-white line-clamp-1">{dest.name}</h5>
+                          </div>
+                        </div>
+
+                        {/* Details */}
+                        <div className="space-y-1 text-xs font-ui">
+                          <p className="text-[#767064] text-[11px] line-clamp-1 italic">
+                            "{dest.tagline || 'Açıklama belirtilmedi'}"
+                          </p>
+                          {dest.linkedArticleId && (
+                            <div className="text-[10px] text-[#9E7B54] flex items-center gap-1 font-medium">
+                              <span>🔗 Bağlı Yazı:</span>
+                              <span className="truncate">
+                                {articles.find((a) => a.id === dest.linkedArticleId)?.title || dest.linkedArticleId}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="pt-2 border-t border-[#EFEAE2] flex items-center justify-between gap-1">
+                          {/* Reorder arrows */}
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              disabled={idx === 0}
+                              onClick={() => handleMoveDest(idx, 'up')}
+                              className="p-1 text-[#767064] hover:text-[#1A1814] hover:bg-[#FAF8F5] disabled:opacity-30 disabled:hover:bg-transparent rounded-2xs cursor-pointer"
+                              title="Sola / Yukarı Taşı"
+                            >
+                              <MoveUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={idx === destinationsList.length - 1}
+                              onClick={() => handleMoveDest(idx, 'down')}
+                              className="p-1 text-[#767064] hover:text-[#1A1814] hover:bg-[#FAF8F5] disabled:opacity-30 disabled:hover:bg-transparent rounded-2xs cursor-pointer"
+                              title="Sağa / Aşağı Taşı"
+                            >
+                              <MoveDown className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
+                          {/* Edit / Delete */}
+                          <div className="flex items-center gap-1.5">
+                            {destDeleteConfirmId === dest.id ? (
+                              <div className="flex items-center gap-1 bg-[#FDF2F2] p-1 border border-[#F8B4B4] rounded-2xs">
+                                <span className="text-[10px] text-[#9B1C1C] font-ui">Silinsin mi?</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteDest(dest.id, dest.name)}
+                                  className="px-1.5 py-0.5 bg-[#DC2626] text-white text-[10px] font-ui font-semibold rounded-2xs hover:bg-[#B91C1C]"
+                                >
+                                  Evet
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDestDeleteConfirmId(null)}
+                                  className="px-1.5 py-0.5 bg-[#FFFFFF] text-[#5C554D] text-[10px] font-ui border border-[#D5CFC5] rounded-2xs"
+                                >
+                                  İptal
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditDest(dest)}
+                                  className="px-2.5 py-1 text-xs font-ui text-[#5C554D] hover:text-[#1A1814] bg-[#FAF8F5] hover:bg-[#EAE4DC] border border-[#E5E0D8] rounded-2xs transition-colors flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Edit3 className="w-3 h-3 text-[#9E7B54]" />
+                                  <span>Düzenle</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDestDeleteConfirmId(dest.id)}
+                                  className="p-1 text-[#767064] hover:text-[#DC2626] hover:bg-[#FDF2F2] rounded-2xs transition-colors cursor-pointer"
+                                  title="Kartı Sil"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -2108,6 +2433,181 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 {editingHotelIndex !== null ? 'Değişikliği Kaydet' : 'Otele Ekle'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Destination Card Edit / Add Modal */}
+      {isDestModalOpen && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-[#1A1814]/80 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-[#FAF8F5] border border-[#E5E0D8] w-full max-w-xl shadow-2xl p-5 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto text-[#2D2924]">
+            <div className="flex items-center justify-between border-b border-[#E5E0D8] pb-3">
+              <div className="flex items-center gap-2">
+                <Compass className="w-5 h-5 text-[#9E7B54]" />
+                <h3 className="font-display text-lg font-medium text-[#1A1814]">
+                  {editingDest ? `Bölge Kartını Düzenle: ${editingDest.name}` : 'Yeni Bölge Kartı Ekle'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsDestModalOpen(false)}
+                className="p-1 text-[#767064] hover:text-[#1A1814] cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveDest} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-ui font-semibold uppercase text-[#4A453E] block mb-1">
+                    Kart Başlığı (Şehir / Bölge) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Örn: Julian Alps veya Dubai & Desert"
+                    value={destForm.name}
+                    onChange={(e) => setDestForm({ ...destForm, name: e.target.value })}
+                    className="w-full bg-[#FFFFFF] border border-[#D5CFC5] px-3 py-2 text-xs font-ui text-[#1A1814]"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-ui font-semibold uppercase text-[#4A453E] block mb-1">
+                    Ülke / Konum *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Örn: Slovenia, Japan, Italy, Mexico..."
+                    value={destForm.country}
+                    onChange={(e) => setDestForm({ ...destForm, country: e.target.value })}
+                    className="w-full bg-[#FFFFFF] border border-[#D5CFC5] px-3 py-2 text-xs font-ui text-[#1A1814]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-ui font-semibold uppercase text-[#4A453E] block mb-1">
+                    Bölge / Kategori Etiketi
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Örn: Europe, Asia, Hidden Gems, Americas..."
+                    value={destForm.tag}
+                    onChange={(e) => setDestForm({ ...destForm, tag: e.target.value })}
+                    className="w-full bg-[#FFFFFF] border border-[#D5CFC5] px-3 py-2 text-xs font-ui text-[#1A1814]"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-ui font-semibold uppercase text-[#4A453E] block mb-1">
+                    Kısa Slogan / Vibe Açıklaması
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Örn: Emerald Rivers & Secret Lakes"
+                    value={destForm.tagline}
+                    onChange={(e) => setDestForm({ ...destForm, tagline: e.target.value })}
+                    className="w-full bg-[#FFFFFF] border border-[#D5CFC5] px-3 py-2 text-xs font-ui text-[#1A1814]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-ui font-semibold uppercase text-[#4A453E] block mb-1">
+                  Fotoğraf Linki (Unsplash veya Doğrudan Resim URL'si) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="https://images.unsplash.com/photo-..."
+                  value={destForm.imageUrl}
+                  onChange={(e) => setDestForm({ ...destForm, imageUrl: e.target.value })}
+                  className="w-full bg-[#FFFFFF] border border-[#D5CFC5] px-3 py-2 text-xs font-ui text-[#1A1814]"
+                />
+
+                {/* Quick Presets */}
+                <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] font-ui text-[#767064]">Hızlı Örnekler:</span>
+                  {[
+                    { label: '🏔️ Alpler / Göl', url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=800&auto=format&fit=crop' },
+                    { label: '🏛️ İtalya / Sahil', url: 'https://images.unsplash.com/photo-1533105079780-92b9be482077?q=80&w=800&auto=format&fit=crop' },
+                    { label: '🏮 Japonya / Kyoto', url: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=800&auto=format&fit=crop' },
+                    { label: '🏜️ Dubai / Çöl', url: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?q=80&w=800&auto=format&fit=crop' },
+                    { label: '🍀 İrlanda / Dublin', url: 'https://images.unsplash.com/photo-1549918864-48ac978761a4?q=80&w=800&auto=format&fit=crop' },
+                    { label: '🌮 Meksika / Oaxaca', url: 'https://images.unsplash.com/photo-1518638150340-f706e86654de?q=80&w=800&auto=format&fit=crop' },
+                  ].map((preset, pIdx) => (
+                    <button
+                      key={pIdx}
+                      type="button"
+                      onClick={() => setDestForm({ ...destForm, imageUrl: preset.url })}
+                      className="px-2 py-0.5 text-[10px] font-ui bg-[#FFFFFF] hover:bg-[#EAE4DC] border border-[#D5CFC5] text-[#1A1814] rounded-2xs cursor-pointer"
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Live Image Preview */}
+                {destForm.imageUrl && (
+                  <div className="mt-3 relative aspect-[16/9] max-h-36 rounded-xs overflow-hidden border border-[#D5CFC5] bg-[#EFEAE2]">
+                    <img
+                      src={destForm.imageUrl}
+                      alt="Önizleme"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=800&auto=format&fit=crop';
+                      }}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute bottom-2 left-2 bg-[#1A1814]/80 text-white text-[10px] px-2 py-0.5 rounded-2xs">
+                      Görsel Önizlemesi
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="text-[11px] font-ui font-semibold uppercase text-[#4A453E] block mb-1">
+                  Tıklandığında Açılacak Belirli Yazı (İsteğe Bağlı)
+                </label>
+                <select
+                  value={destForm.linkedArticleId || ''}
+                  onChange={(e) => setDestForm({ ...destForm, linkedArticleId: e.target.value })}
+                  className="w-full bg-[#FFFFFF] border border-[#D5CFC5] px-3 py-2 text-xs font-ui text-[#1A1814]"
+                >
+                  <option value="">-- Otomatik Bölge/Ülke Filtresi Uygula --</option>
+                  {articles.map((art) => (
+                    <option key={art.id} value={art.id}>
+                      {art.title} ({art.region})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] font-ui text-[#767064] mt-1">
+                  Bir yazı seçerseniz kullanıcı karta tıkladığında doğrudan o yazı açılır; boş bırakırsanız ilgili ülkenin yazılarını listeler.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E5E0D8]">
+                <button
+                  type="button"
+                  onClick={() => setIsDestModalOpen(false)}
+                  className="px-4 py-2 text-xs font-ui text-[#5C554D] hover:bg-[#EAE4DC] rounded-xs cursor-pointer"
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingDest}
+                  className="px-5 py-2 bg-[#1A1814] hover:bg-[#9E7B54] text-[#FFFFFF] text-xs font-ui uppercase tracking-wider font-semibold rounded-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {isSavingDest && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{editingDest ? 'Değişiklikleri Kaydet' : 'Bölge Kartını Ekle'}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

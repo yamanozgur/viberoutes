@@ -176,3 +176,17 @@ export interface CuratedRoute {
   }[];
   heroImage: string;
 }
+
+export interface FeaturedDestination {
+  id: string;
+  name: string;
+  country: string;
+  tagline: string;
+  tag: string;
+  imageUrl: string;
+  accentColor?: string;
+  badgeBg?: string;
+  order: number;
+  linkedArticleId?: string;
+  targetRegion?: string;
+}
